@@ -1,0 +1,620 @@
+# GUILDS CLI
+
+GUILDS is a command-line toolkit for creating, validating, rendering, exporting, and packaging `.guilds` interface specifications.
+
+Install it in editable mode to register the real `guilds` console command:
+
+```powershell
+pip install -e core
+```
+
+After installation, the primary entrypoint is:
+
+```powershell
+guilds
+```
+
+You can still run the script directly from the repo if needed:
+
+```powershell
+python core/guilds_cli.py
+```
+
+## Quick Start
+
+For a longer, end-user-focused guide with real examples, see:
+
+- [docs/USER_GUIDE.md](C:/Users/Thomas/Desktop/GUILDS/docs/USER_GUIDE.md)
+- [docs/react_gui_builder.html](C:/Users/Thomas/Desktop/GUILDS/docs/react_gui_builder.html) for a drag-and-drop React planning prototype
+- [builder](C:/Users/Thomas/Desktop/GUILDS/builder) for the full Vite-based React builder app source
+
+Create a spec, validate it, build the default HTML output, then run the dev server:
+
+```powershell
+guilds new MyApp
+guilds validate myapp.guilds
+guilds build myapp.guilds
+guilds serve myapp.guilds
+```
+
+Default HTML output is written to:
+
+```text
+outputs/<spec-name>/guilds_live.html
+```
+
+Example:
+
+```text
+outputs/testapp/guilds_live.html
+```
+
+## Command Summary
+
+```text
+guilds new <name>
+guilds validate <spec>
+guilds build <spec> [--backend ...] [--output ...]
+guilds render <spec> <phase> [--backend ...]
+guilds serve <spec> [--port ...]
+guilds serve --builder [--port ...]
+guilds export <spec> <json|react|vue|events|statemachine>
+guilds pdf <input> [--output ...]
+guilds compile <spec> [--backend ...] [--onefile] [--console]
+```
+
+Run help at any level:
+
+```powershell
+guilds --help
+guilds build --help
+guilds compile --help
+```
+
+For the visual builder:
+
+```powershell
+guilds serve --builder
+cd builder
+npm install
+npm run dev
+```
+
+## Installation And Prerequisites
+
+Minimum:
+
+- Python 3.10+ is the practical baseline for the generated code and tooling.
+- From the repository root, use `pip install -e core` to make the `guilds` command available in your environment.
+- Core runtime modules live under `core/`, and backend renderers live under `guilds_renderers/`.
+
+Optional but useful:
+
+- `pip install watchdog` for live rebuilds during `serve`.
+- `pip install pyinstaller` for `compile`.
+- `pip install -e core[pdf]` for the PDF generator command.
+- `pip install -e core[pdf-gui]` for the optional Kivy PDF GUI and `guilds pdf --gui`.
+- `pip install PyQt5`, `pip install PyQt6`, or `pip install PySide6` to run generated Qt apps.
+- CMake + a Qt toolchain for `cpp-qt`.
+- Dear ImGui and your preferred platform/render backend for `cpp-imgui`.
+
+## Core Workflow
+
+The normal loop is:
+
+1. Create or edit a `.guilds` file.
+2. Run `validate` to catch parser and semantic issues.
+3. Run `build` for the target backend.
+4. Use `serve` for the HTML iteration loop.
+5. Use `export` or `compile` when you need integration artifacts or a distributable binary.
+6. Use `pdf` when you want to turn a local `.md`, `.txt`, or `.json` file into a formatted PDF.
+
+For fastest feedback, use HTML first, then switch to desktop or C++ backends after the spec is stable.
+
+## Commands In Detail
+
+### `new`
+
+Create a starter specification from the built-in template.
+
+```powershell
+guilds new MyApp
+guilds new MyApp --force
+```
+
+What it does:
+
+- Writes a lowercase filename in the current directory, e.g. `myapp.guilds`.
+- Refuses to overwrite unless `--force` is provided.
+- Seeds a basic template with claims, an affordance, a vessel, and a stage.
+
+Good use cases:
+
+- Bootstrapping a new example.
+- Creating a known-good template before experimenting.
+
+### `validate`
+
+Parse and evaluate a spec without generating output files.
+
+```powershell
+guilds validate myapp.guilds
+```
+
+Behavior:
+
+- Missing file returns an error.
+- Parser or lexer failures return a fatal error.
+- Semantic violations are grouped into warnings and errors.
+- Warnings do not fail the command.
+- Validation errors return a non-zero exit code.
+
+When validation succeeds with no warnings, the CLI prints a summary count for claims, affordances, vessels, stages, flows, bonds, and seams.
+
+Tip:
+
+- Run `validate` before `build` or `compile`; it is the cheapest way to catch malformed specs.
+
+### `build`
+
+Generate output for a target backend.
+
+```powershell
+guilds build myapp.guilds
+guilds build myapp.guilds --backend python-tk
+guilds build myapp.guilds --backend pyside6
+guilds build myapp.guilds --backend cpp-qt
+guilds build myapp.guilds --output out/custom
+```
+
+Default behavior:
+
+- Backend defaults to `html`.
+- Output defaults to `outputs/<spec-name>/`.
+
+#### Build Backends
+
+`html`
+
+- Default backend.
+- Produces `guilds_live.html`.
+- Best choice for rapid iteration and `serve`.
+
+`python-tk`
+
+- Produces `guilds_app_tk.py`.
+- No extra GUI package is usually needed beyond the standard library.
+
+`python-qt`
+
+- Backward-compatible alias for `pyqt5`.
+- Produces the same file as `pyqt5`: `guilds_app_pyqt5.py`.
+
+`pyqt5`
+
+- Produces `guilds_app_pyqt5.py`.
+
+`pyqt6`
+
+- Produces `guilds_app_pyqt6.py`.
+
+`pyside6`
+
+- Produces `guilds_app_pyside6.py`.
+- This is the best default if you plan to use `compile`.
+
+`cpp-qt`
+
+- Produces:
+  - `guilds_ui.h`
+  - `guilds_ui.cpp`
+  - `main.cpp`
+  - `CMakeLists.txt`
+
+`cpp-imgui`
+
+- Produces:
+  - `guilds_ui.h`
+  - `guilds_ui.cpp`
+
+Examples:
+
+```powershell
+guilds build testapp.guilds
+guilds build testapp.guilds --backend pyside6
+guilds build testapp.guilds --backend cpp-imgui
+```
+
+### `render`
+
+Render a specific phase snapshot.
+
+```powershell
+guilds render myapp.guilds idle
+guilds render myapp.guilds execute
+guilds render myapp.guilds recover --backend html
+```
+
+Valid phases:
+
+- `idle`
+- `orient`
+- `execute`
+- `verify`
+- `integrate`
+- `recover`
+
+HTML output:
+
+- Writes `outputs/<spec-name>/guilds_surface_<phase>.html`
+- Example: `outputs/testapp/guilds_surface_execute.html`
+
+Notes:
+
+- `render` is most useful for checking how the surface changes across phases.
+- For non-HTML backends, it still renders phase-specific output, but the generated filenames are the same backend filenames used by `build`.
+
+### `serve`
+
+Run the HTML development loop with a local HTTP server.
+
+```powershell
+guilds serve myapp.guilds
+guilds serve myapp.guilds --port 9000
+```
+
+Behavior:
+
+- Performs an initial HTML build.
+- Serves from `outputs/<spec-name>/`.
+- Default port is `8080`.
+- If `watchdog` is installed, `.guilds` edits trigger rebuilds automatically.
+- Without `watchdog`, serving still works, but you rebuild manually.
+
+Use this for:
+
+- Fast iteration on HTML output.
+- Checking output in a browser before generating desktop or C++ artifacts.
+
+### `export`
+
+Generate integration-oriented artifacts.
+
+```powershell
+guilds export myapp.guilds json
+guilds export myapp.guilds react
+guilds export myapp.guilds vue
+guilds export myapp.guilds events
+```
+
+Supported formats:
+
+`json`
+
+- Writes `outputs/<spec-name>/<spec-name>.json`
+
+`react`
+
+- Writes one main component, one component per vessel, plus `guilds.css`
+
+`vue`
+
+- Writes `outputs/<spec-name>/<SpecName>GUI.vue`
+
+`events`
+
+- Writes `outputs/<spec-name>/<spec-name>_events.json`
+- Useful when integrating UI events into another host application
+
+Use this when:
+
+- You want to inspect the evaluated structure as data.
+- You want framework starter components.
+- You want a machine-readable event contract for integration.
+
+### `compile`
+
+Package a Python backend into a standalone executable via PyInstaller.
+
+```powershell
+guilds compile myapp.guilds
+guilds compile myapp.guilds --backend pyside6
+guilds compile myapp.guilds --onefile
+guilds compile myapp.guilds --name MyGuildsApp --icon app.ico
+```
+
+Supported compile backends:
+
+- `python-tk`
+- `python-qt`
+- `pyqt5`
+- `pyqt6`
+- `pyside6`
+
+Defaults:
+
+- Backend defaults to `pyside6`
+- Output defaults to `outputs/<spec-name>/`
+- Windowed mode is used unless `--console` is passed
+
+Important flags:
+
+- `--onefile` / `-F`: build a single-file executable
+- `--console` / `-c`: show a console window
+- `--name` / `-n`: override the executable name
+- `--icon` / `-i`: set an icon file
+
+What happens internally:
+
+1. The spec is parsed and checked for semantic errors.
+2. A Python application is generated for the selected backend.
+3. PyInstaller packages that generated file.
+
+Tip:
+
+- Use `pyside6` unless you have a strong reason to lock into a different Qt binding.
+
+## Output Layout
+
+By default, generated files are kept under:
+
+```text
+outputs/<spec-name>/
+```
+
+Typical files you will see:
+
+- `guilds_live.html`
+- `guilds_surface_execute.html`
+- `guilds_app_tk.py`
+- `guilds_app_pyqt5.py`
+- `guilds_app_pyqt6.py`
+- `guilds_app_pyside6.py`
+- `guilds_ui.h`
+- `guilds_ui.cpp`
+- `main.cpp`
+- `CMakeLists.txt`
+- `<spec-name>.json`
+- `<spec-name>_events.json`
+
+Use `--output` when you want to keep generated artifacts isolated from the default `outputs/` tree.
+
+## Recommended Usage Patterns
+
+### Fastest Iteration Loop
+
+Use this when you are still shaping the spec:
+
+```powershell
+guilds validate myapp.guilds
+guilds serve myapp.guilds
+```
+
+Why:
+
+- HTML feedback is fastest.
+- You avoid waiting on PyInstaller or desktop GUI dependencies.
+
+### Backend Promotion
+
+A stable progression looks like this:
+
+1. `html` during early design and layout iteration
+2. `python-tk` if you want a simple no-extra-install desktop target
+3. `pyside6` if you want a stronger desktop target and eventual executable packaging
+4. `cpp-qt` or `cpp-imgui` only after the spec is already behaving correctly
+
+### CI-Friendly Validation
+
+For automation, make `validate` the first gate:
+
+```powershell
+guilds validate myapp.guilds
+```
+
+This gives you a quick pass/fail check without generating artifacts.
+
+## Tips And Tricks
+
+- Treat `validate` as your linter. Run it before every build.
+- Use `serve` for layout and interaction iteration; it is the shortest feedback loop in the project.
+- Use `render <phase>` to sanity-check phase-specific surfaces without stepping through the full app.
+- Prefer `--output` for experiments so you do not overwrite a previous generated set.
+- If you need an executable, get the generated Python backend running first, then package it with `compile`.
+- If a spec produces warnings but no errors, build may still succeed; warnings are a cue to inspect semantics, not necessarily a hard stop.
+- The `python-qt` backend name is an alias, not a separate renderer. It maps to the PyQt5 renderer.
+- For C++ targets, generate code only after the spec is stable; you will iterate faster in HTML or Python first.
+
+## FAQ
+
+### Should I use `guilds` or `python guilds_cli.py`?
+
+Use `guilds` after running `pip install -e core` from the repository root. Use `python core/guilds_cli.py` only when you want to run directly from the repository without installing the console entrypoint.
+
+### What is the safest default backend?
+
+Use `html` for iteration. Use `pyside6` if you need a Python desktop app or want to package an executable later.
+
+### What is the difference between `build` and `render`?
+
+- `build` creates the normal app output for a backend.
+- `render` creates a phase-specific snapshot.
+
+For HTML, `render` is especially useful because it writes phase-specific files like `guilds_surface_execute.html`.
+
+### Why does `python-qt` generate a `pyqt5` filename?
+
+Because `python-qt` is a compatibility alias for the PyQt5 renderer. It generates the same code path and the same output file family as `pyqt5`.
+
+### Does `serve` require `watchdog`?
+
+No. `serve` still starts the local server without it. `watchdog` only enables automatic rebuilds when `.guilds` files change.
+
+### When should I use `compile`?
+
+Only after the generated Python backend already runs correctly. `compile` packages generated Python code; it is not the right place to debug spec issues for the first time.
+
+### Does `validate` fail on warnings?
+
+No. Warnings are printed, but only validation errors produce a failing exit status. Fatal parser/lexer problems also fail immediately.
+
+## Troubleshooting
+
+### `Error importing GUILDS modules`
+
+Cause:
+
+- The repo files are not together, or you are running the CLI from the wrong location.
+
+Fix:
+
+- Run from the repository root.
+- Keep the core `guilds_*.py` files in the same directory.
+
+### `Error: <file>.guilds not found`
+
+Cause:
+
+- Wrong path or wrong working directory.
+
+Fix:
+
+- Use a correct relative or absolute path.
+- Confirm the file exists before running the command.
+
+### `FATAL:` parse or lex errors
+
+Cause:
+
+- The `.guilds` source is syntactically invalid.
+
+Fix:
+
+- Run `validate` first.
+- Correct the reported syntax issue before building.
+
+### Validation warnings about phases or intent blindness
+
+Cause:
+
+- The spec is structurally valid but semantically weak or repetitive.
+
+Fix:
+
+- Review whether each phase should actually present different state, visibility, or interaction behavior.
+- Use `render` across multiple phases to compare output quickly.
+
+### `Error: PyInstaller is not installed.`
+
+Cause:
+
+- You ran `compile` without the packaging dependency.
+
+Fix:
+
+```powershell
+pip install pyinstaller
+```
+
+### Generated Qt app will not run
+
+Cause:
+
+- The required Qt binding is missing.
+
+Fix:
+
+Install the package that matches the backend:
+
+```powershell
+pip install PyQt5
+pip install PyQt6
+pip install PySide6
+```
+
+### `serve` does not rebuild automatically
+
+Cause:
+
+- `watchdog` is not installed.
+
+Fix:
+
+```powershell
+pip install watchdog
+```
+
+Then restart `serve`.
+
+### `compile` succeeds but I cannot find the executable
+
+Cause:
+
+- PyInstaller uses different output layouts for one-file vs one-dir builds.
+
+Fix:
+
+- With `--onefile`, look directly under `outputs/<spec-name>/dist/`
+- Without `--onefile`, look under `outputs/<spec-name>/dist/<app-name>/`
+
+### C++ outputs do not build immediately
+
+Cause:
+
+- The CLI generates source files, not a fully provisioned C++ environment.
+
+Fix:
+
+- For `cpp-qt`, use a valid Qt + CMake toolchain.
+- For `cpp-imgui`, add the generated files to an existing Dear ImGui host project.
+
+## Practical Examples
+
+Generate and inspect a new spec:
+
+```powershell
+guilds new Demo
+guilds validate demo.guilds
+guilds build demo.guilds
+```
+
+Render every phase to compare behavior:
+
+```powershell
+guilds render demo.guilds idle
+guilds render demo.guilds orient
+guilds render demo.guilds execute
+guilds render demo.guilds verify
+guilds render demo.guilds integrate
+guilds render demo.guilds recover
+```
+
+Build a desktop Python app and then package it:
+
+```powershell
+guilds build demo.guilds --backend pyside6
+guilds compile demo.guilds --backend pyside6 --onefile
+```
+
+Export data and integration artifacts:
+
+```powershell
+guilds export demo.guilds json
+guilds export demo.guilds events
+```
+
+## Known Quirks
+
+- `python-qt` is an alias for `pyqt5`; it is not a distinct renderer.
+- The Python backend generated filenames are backend-specific. Do not assume a generic `guilds_app_qt.py` exists.
+
+## Suggested Next Step
+
+If you are new to the project, start by running:
+
+```powershell
+guilds validate testapp.guilds
+guilds build testapp.guilds
+```
+
+That gives you a known local reference point before you create or modify your own spec.

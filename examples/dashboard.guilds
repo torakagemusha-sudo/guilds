@@ -1,0 +1,778 @@
+-- =============================================================================
+-- GUILDS Dashboard Specification
+-- =============================================================================
+-- A data dashboard demonstrating all GUILDS features:
+-- - Multiple claims with various certainty grades
+-- - Flows for data refresh and export operations
+-- - Failure handling for API and data errors
+-- - Phase transitions for viewing vs configuring
+-- - Complex vessel layouts with charts and metrics
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- SECTION 1: METRIC CLAIMS
+-- ---------------------------------------------------------------------------
+
+claim TotalUsersClaim {
+    content:     numeric(total_users)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(database)
+    stakes:      high
+    freshness:   polled(interval = m(5))
+    on_stale:    mark_stale
+}
+
+claim ActiveUsersClaim {
+    content:     numeric(active_users_24h)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(analytics_api)
+    stakes:      high
+    freshness:   polled(interval = m(1))
+    on_stale:    mark_stale
+}
+
+claim RevenueClaim {
+    content:     numeric(total_revenue)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(billing_system)
+    stakes:      high
+    freshness:   polled(interval = m(15))
+    on_stale:    mark_stale
+}
+
+claim ConversionRateClaim {
+    content:     numeric(conversion_percentage)
+    certainty:   0x03C4~
+    provenance:  source.derived(signups_and_trials, method = ratio_calculation)
+    stakes:      medium
+    freshness:   polled(interval = m(5))
+    on_stale:    mark_stale
+}
+
+claim ChurnRateClaim {
+    content:     numeric(churn_percentage)
+    certainty:   0x03C4~
+    provenance:  source.derived(cancellations_and_active, method = ratio_calculation)
+    stakes:      high
+    freshness:   polled(interval = h(1))
+    on_stale:    mark_stale
+}
+
+claim ErrorRateClaim {
+    content:     numeric(error_percentage)
+    certainty:   0x03C4?
+    provenance:  source.derived(error_logs, method = sampling)
+    stakes:      high
+    freshness:   polled(interval = m(1))
+    on_stale:    mark_stale
+}
+
+claim LatencyClaim {
+    content:     numeric(p99_latency_ms)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(monitoring_system)
+    stakes:      high
+    freshness:   live
+    on_stale:    mark_stale
+}
+
+claim UptimeClaim {
+    content:     numeric(uptime_percentage)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(health_check)
+    stakes:      high
+    freshness:   polled(interval = s(30))
+    on_stale:    mark_stale
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 2: CHART CLAIMS
+-- ---------------------------------------------------------------------------
+
+claim UserGrowthChartClaim {
+    content:     chart(user_growth_timeseries)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(analytics_api)
+    stakes:      medium
+    freshness:   polled(interval = h(1))
+    on_stale:    mark_stale
+}
+
+claim RevenueChartClaim {
+    content:     chart(revenue_timeseries)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(billing_system)
+    stakes:      high
+    freshness:   polled(interval = h(1))
+    on_stale:    mark_stale
+}
+
+claim TrafficChartClaim {
+    content:     chart(traffic_timeseries)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(analytics_api)
+    stakes:      medium
+    freshness:   polled(interval = m(5))
+    on_stale:    mark_stale
+}
+
+claim ErrorChartClaim {
+    content:     chart(error_distribution)
+    certainty:   0x03C4?
+    provenance:  source.derived(error_logs, method = aggregation)
+    stakes:      high
+    freshness:   polled(interval = m(5))
+    on_stale:    mark_stale
+}
+
+claim GeoDistributionClaim {
+    content:     chart(geographic_distribution)
+    certainty:   0x03C4~
+    provenance:  source.derived(ip_addresses, method = geolocation)
+    stakes:      low
+    freshness:   polled(interval = h(1))
+    on_stale:    mark_stale
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 3: STATUS CLAIMS
+-- ---------------------------------------------------------------------------
+
+claim LastRefreshClaim {
+    content:     text(last_refresh_time)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(system)
+    stakes:      low
+    freshness:   event_driven(refresh_complete)
+    on_stale:    mark_stale
+}
+
+claim DataSourceStatusClaim {
+    content:     status(data_source_health)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(health_check)
+    stakes:      high
+    freshness:   polled(interval = s(30))
+    on_stale:    mark_stale
+}
+
+claim DateRangeClaim {
+    content:     text(selected_date_range)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(user_selection)
+    stakes:      medium
+    freshness:   event_driven(range_change)
+    on_stale:    mark_stale
+}
+
+claim ExportProgressClaim {
+    content:     numeric(export_percentage)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(export_job)
+    stakes:      medium
+    freshness:   live
+    on_stale:    remove
+}
+
+claim AlertClaim {
+    content:     text(alert_message)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(alerting_system)
+    stakes:      high
+    freshness:   event_driven(alert_triggered)
+    on_stale:    remove
+}
+
+claim ConnectionErrorClaim {
+    content:     text(connection_error_message)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(api_client)
+    stakes:      high
+    freshness:   event_driven(connection_error)
+    on_stale:    remove
+}
+
+claim StaleDataWarningClaim {
+    content:     text(stale_data_warning)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(system)
+    stakes:      medium
+    freshness:   event_driven(staleness_detected)
+    on_stale:    remove
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 4: AFFORDANCES
+-- ---------------------------------------------------------------------------
+
+afford RefreshAfford {
+    perceivable:  always_visible
+    offered:      activate
+    requires:     [not_refreshing]
+    contracts: [
+        contract RefreshData {
+            trigger:     user_action(RefreshAfford)
+            obligation:  execute(refresh_all_data)
+            deadline:    s(30)
+            on_breach:   0x03A60x00BD
+        }
+        contract RefreshAck {
+            trigger:     user_action(RefreshAfford)
+            obligation:  acknowledge
+            deadline:    ms(100)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford DateRangeAfford {
+    perceivable:  always_visible
+    offered:      select(cardinality = one)
+    requires:     []
+    contracts: [
+        contract SetDateRange {
+            trigger:     user_action(DateRangeAfford)
+            obligation:  execute(update_date_range)
+            deadline:    ms(100)
+            on_breach:   0x03A60x2193
+        }
+        contract ReloadData {
+            trigger:     user_action(DateRangeAfford)
+            obligation:  execute(reload_with_range)
+            deadline:    s(10)
+            on_breach:   0x03A60x00BD
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford ExportAfford {
+    perceivable:  always_visible
+    offered:      select(cardinality = one)
+    requires:     [has_data]
+    contracts: [
+        contract ExportData {
+            trigger:     user_action(ExportAfford)
+            obligation:  execute(export_to_format)
+            deadline:    s(60)
+            on_breach:   0x03A60x22A3
+        }
+        contract ExportProgress {
+            trigger:     user_action(ExportAfford)
+            obligation:  display(ExportProgressClaim)
+            deadline:    ms(500)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford FilterAfford {
+    perceivable:  mode_revealed(phase = orient)
+    offered:      input(type = text)
+    requires:     []
+    contracts: [
+        contract ApplyFilter {
+            trigger:     user_action(FilterAfford)
+            obligation:  execute(filter_data)
+            deadline:    s(5)
+            on_breach:   0x03A60x00BD
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford ConfigureWidgetAfford {
+    perceivable:  mode_revealed(phase = orient)
+    offered:      activate
+    requires:     []
+    contracts: [
+        contract OpenConfig {
+            trigger:     user_action(ConfigureWidgetAfford)
+            obligation:  navigate(widget_config)
+            deadline:    ms(200)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford DismissAlertAfford {
+    perceivable:  context_revealed(has_alert)
+    offered:      activate
+    requires:     [has_alert]
+    contracts: [
+        contract DismissAlert {
+            trigger:     user_action(DismissAlertAfford)
+            obligation:  execute(dismiss_alert)
+            deadline:    ms(100)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford FullscreenChartAfford {
+    perceivable:  context_revealed(chart_hovered)
+    offered:      activate
+    requires:     [chart_visible]
+    contracts: [
+        contract ExpandChart {
+            trigger:     user_action(FullscreenChartAfford)
+            obligation:  navigate(fullscreen_chart)
+            deadline:    ms(200)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford DrillDownAfford {
+    perceivable:  context_revealed(metric_selected)
+    offered:      activate
+    requires:     [metric_selected]
+    contracts: [
+        contract DrillDown {
+            trigger:     user_action(DrillDownAfford)
+            obligation:  navigate(metric_detail)
+            deadline:    s(5)
+            on_breach:   0x03A60x22A3
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford RetryConnectionAfford {
+    perceivable:  context_revealed(connection_failed)
+    offered:      activate
+    requires:     [connection_failed]
+    contracts: [
+        contract RetryConnection {
+            trigger:     user_action(RetryConnectionAfford)
+            obligation:  execute(reconnect_datasource)
+            deadline:    s(10)
+            on_breach:   0x03A60x22A3
+        }
+    ]
+    on_unavail:   hidden
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 5: VESSELS
+-- ---------------------------------------------------------------------------
+
+vessel Header {
+    budget:      whole(0.08)
+    phase:       any
+    weight:      secondary
+    arrangement: sequence(primary, [0.3, 0.2, 0.2, 0.15, 0.15])
+    contains:    [LastRefreshClaim, DateRangeClaim, DateRangeAfford, RefreshAfford, ExportAfford]
+}
+
+vessel MetricsRow {
+    budget:      whole(0.15)
+    phase:       any
+    weight:      primary
+    arrangement: sequence(primary, [0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125])
+    contains:    [TotalUsersClaim, ActiveUsersClaim, RevenueClaim, ConversionRateClaim, ChurnRateClaim, ErrorRateClaim, LatencyClaim, UptimeClaim]
+    failures: [
+        FailureSpec {
+            trigger:   api_timeout
+            surfaces:  0x03A60x231B
+            propagates: conditional
+        }
+        FailureSpec {
+            trigger:   api_error
+            surfaces:  0x03A60x2193
+            propagates: no
+        }
+    ]
+}
+
+vessel UserGrowthCard {
+    budget:      shared(0.25, chart_count)
+    phase:       [0x03C60x2205, 0x03C60x2081]
+    weight:      primary
+    arrangement: sequence(primary, [1.0])
+    contains:    [UserGrowthChartClaim, FullscreenChartAfford, DrillDownAfford]
+    failures: [
+        FailureSpec {
+            trigger:   chart_render_error
+            surfaces:  0x03A60x00BD
+            propagates: no
+        }
+    ]
+}
+
+vessel RevenueCard {
+    budget:      shared(0.25, chart_count)
+    phase:       [0x03C60x2205, 0x03C60x2081]
+    weight:      primary
+    arrangement: sequence(primary, [1.0])
+    contains:    [RevenueChartClaim, FullscreenChartAfford, DrillDownAfford]
+}
+
+vessel TrafficCard {
+    budget:      shared(0.25, chart_count)
+    phase:       [0x03C60x2205, 0x03C60x2081]
+    weight:      secondary
+    arrangement: sequence(primary, [1.0])
+    contains:    [TrafficChartClaim, FullscreenChartAfford]
+}
+
+vessel ErrorCard {
+    budget:      shared(0.25, chart_count)
+    phase:       [0x03C60x2205, 0x03C60x2081, 0x03C60x1D63]
+    weight:      secondary
+    arrangement: sequence(primary, [1.0])
+    contains:    [ErrorChartClaim, ErrorRateClaim, FullscreenChartAfford]
+    failures: [
+        FailureSpec {
+            trigger:   high_error_rate
+            surfaces:  0x03A60x2192
+            propagates: yes
+        }
+    ]
+}
+
+vessel GeoCard {
+    budget:      shared(0.25, chart_count)
+    phase:       0x03C60x2080
+    weight:      secondary
+    arrangement: sequence(primary, [1.0])
+    contains:    [GeoDistributionClaim, FullscreenChartAfford]
+}
+
+vessel ChartsGrid {
+    budget:      whole(0.60)
+    phase:       [0x03C60x2205, 0x03C60x2081]
+    weight:      primary
+    arrangement: grid(columns = 2, gap = 16px)
+    contains:    [UserGrowthCard, RevenueCard, TrafficCard, ErrorCard]
+}
+
+vessel FilterPanel {
+    budget:      whole(0.20)
+    phase:       0x03C60x2080
+    weight:      secondary
+    arrangement: sequence(cross, [0.5, 0.5])
+    contains:    [FilterAfford, ConfigureWidgetAfford]
+}
+
+vessel StatusBar {
+    budget:      whole(0.05)
+    phase:       any
+    weight:      background
+    arrangement: sequence(primary, [0.5, 0.5])
+    contains:    [DataSourceStatusClaim, LastRefreshClaim]
+    failures: [
+        FailureSpec {
+            trigger:   datasource_down
+            surfaces:  0x03A60x2205
+            propagates: yes
+        }
+    ]
+}
+
+vessel AlertBanner {
+    budget:      whole(0.08)
+    phase:       any
+    weight:      primary
+    arrangement: sequence(primary, [0.85, 0.15])
+    contains:    [AlertClaim, DismissAlertAfford]
+}
+
+vessel StaleWarningBanner {
+    budget:      whole(0.05)
+    phase:       any
+    weight:      secondary
+    arrangement: sequence(primary, [0.8, 0.2])
+    contains:    [StaleDataWarningClaim, RefreshAfford]
+}
+
+vessel ExportProgress {
+    budget:      whole(0.10)
+    phase:       0x03C60x2081
+    weight:      primary
+    arrangement: sequence(primary, [1.0])
+    contains:    [ExportProgressClaim]
+}
+
+vessel ConnectionErrorDialog {
+    budget:      whole(0.25)
+    phase:       0x03C60x1D63
+    weight:      primary
+    arrangement: sequence(primary, [0.7, 0.3])
+    contains:    [ConnectionErrorClaim, RetryConnectionAfford]
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 6: STAGE
+-- ---------------------------------------------------------------------------
+
+stage DashboardStage {
+    budget:  whole(1.0)
+
+    phases: {
+        0x03C60x2205: {
+            arrangement: sequence(primary, [0.08, 0.15, 0.60, 0.12, 0.05])
+            visible:     [Header, MetricsRow, ChartsGrid, AlertBanner, StatusBar]
+            faded:       [AlertBanner]
+            hidden:      [FilterPanel, GeoCard, ExportProgress, ConnectionErrorDialog, StaleWarningBanner]
+            dominant:    ChartsGrid
+        }
+        0x03C60x2080: {
+            arrangement: sequence(primary, [0.08, 0.15, 0.40, 0.20, 0.12, 0.05])
+            visible:     [Header, MetricsRow, ChartsGrid, FilterPanel, AlertBanner, StatusBar]
+            faded:       []
+            hidden:      [GeoCard, ExportProgress, ConnectionErrorDialog, StaleWarningBanner]
+            dominant:    FilterPanel
+        }
+        0x03C60x2081: {
+            arrangement: sequence(primary, [0.08, 0.15, 0.50, 0.10, 0.12, 0.05])
+            visible:     [Header, MetricsRow, ChartsGrid, ExportProgress, AlertBanner, StatusBar]
+            faded:       [ChartsGrid]
+            hidden:      [FilterPanel, GeoCard, ConnectionErrorDialog, StaleWarningBanner]
+            dominant:    ExportProgress
+        }
+        0x03C60x2082: {
+            arrangement: sequence(primary, [0.08, 0.15, 0.55, 0.05, 0.12, 0.05])
+            visible:     [Header, MetricsRow, ChartsGrid, StaleWarningBanner, AlertBanner, StatusBar]
+            faded:       []
+            hidden:      [FilterPanel, GeoCard, ExportProgress, ConnectionErrorDialog]
+            dominant:    ChartsGrid
+        }
+        0x03C60x1D63: {
+            arrangement: sequence(primary, [0.08, 0.15, 0.35, 0.25, 0.12, 0.05])
+            visible:     [Header, MetricsRow, ChartsGrid, ConnectionErrorDialog, AlertBanner, StatusBar]
+            faded:       [ChartsGrid, MetricsRow]
+            hidden:      [FilterPanel, GeoCard, ExportProgress, StaleWarningBanner]
+            dominant:    ConnectionErrorDialog
+        }
+    }
+
+    default: {
+        arrangement: sequence(primary, [0.08, 0.15, 0.60, 0.12, 0.05])
+        visible:     [Header, MetricsRow, ChartsGrid, AlertBanner, StatusBar]
+        faded:       []
+        hidden:      [FilterPanel, GeoCard, ExportProgress, ConnectionErrorDialog, StaleWarningBanner]
+        dominant:    ChartsGrid
+    }
+
+    transition: {
+        duration:   ms(250)
+        curve:      ease-in-out
+        sequence:   anchor_first
+    }
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 7: FLOWS
+-- ---------------------------------------------------------------------------
+
+flow RefreshFlow {
+    trigger:  user_action(RefreshAfford)
+    steps: [
+        step FetchingMetrics {
+            duration:   s(5)
+            state:      acquiring
+            exit:       on_event(metrics_loaded)
+        }
+        step FetchingCharts {
+            duration:   s(10)
+            state:      streaming(progress = charts_loaded)
+            exit:       on_event(charts_loaded)
+        }
+        step Rendering {
+            duration:   ms(500)
+            state:      completing
+            exit:       on_complete
+        }
+    ]
+    on_stall: {
+        threshold:  s(30)
+        surface:    0x03A60x231B
+        recovery:   [RefreshAfford, RetryConnectionAfford]
+    }
+    terminal: success | partial(0x03A60x00BD) | failure(0x03A60x22A3)
+}
+
+flow ExportFlow {
+    trigger:  user_action(ExportAfford)
+    steps: [
+        step Preparing {
+            duration:   s(2)
+            state:      acquiring
+            exit:       on_event(export_started)
+        }
+        step Generating {
+            duration:   s(60)
+            state:      streaming(progress = rows_exported)
+            exit:       on_event(export_complete)
+        }
+        step Downloading {
+            duration:   s(5)
+            state:      completing
+            exit:       on_event(download_started)
+        }
+    ]
+    on_stall: {
+        threshold:  s(120)
+        surface:    0x03A60x22A3
+        recovery:   []
+    }
+    terminal: success | failure(0x03A60x22A3)
+}
+
+flow DrillDownFlow {
+    trigger:  user_action(DrillDownAfford)
+    steps: [
+        step Loading {
+            duration:   s(5)
+            state:      acquiring
+            exit:       on_event(detail_loaded)
+        }
+        step Rendering {
+            duration:   ms(200)
+            state:      completing
+            exit:       on_complete
+        }
+    ]
+    on_stall: {
+        threshold:  s(10)
+        surface:    0x03A60x2193
+        recovery:   []
+    }
+    terminal: success | partial(0x03A60x2193)
+}
+
+flow FilterFlow {
+    trigger:  user_action(FilterAfford)
+    steps: [
+        step Filtering {
+            duration:   s(3)
+            state:      processing
+            exit:       on_event(filter_applied)
+        }
+        step Reloading {
+            duration:   s(5)
+            state:      streaming(progress = data_loaded)
+            exit:       on_event(data_reloaded)
+        }
+    ]
+    on_stall: {
+        threshold:  s(15)
+        surface:    0x03A60x00BD
+        recovery:   [RefreshAfford]
+    }
+    terminal: success | partial(0x03A60x00BD)
+}
+
+flow ConnectionRecoveryFlow {
+    trigger:  user_action(RetryConnectionAfford)
+    steps: [
+        step Reconnecting {
+            duration:   s(10)
+            state:      acquiring
+            exit:       on_event(connection_established)
+        }
+        step Syncing {
+            duration:   s(5)
+            state:      processing
+            exit:       on_event(sync_complete)
+        }
+    ]
+    on_stall: {
+        threshold:  s(20)
+        surface:    0x03A60x2205
+        recovery:   [RetryConnectionAfford]
+    }
+    terminal: success | failure(0x03A60x2205)
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 8: BONDS
+-- ---------------------------------------------------------------------------
+
+bond MetricsChartsBond between (MetricsRow, ChartsGrid) {
+    kind:      corresponds(mapping = metrics_to_charts)
+    direction: bidirectional
+    strength:  flexible
+    on_break:  0x03A60x2193
+}
+
+bond HeaderDateBond between (Header, ChartsGrid) {
+    kind:      corresponds(mapping = date_range_to_data)
+    direction: unidirectional(from = Header, to = ChartsGrid)
+    strength:  rigid
+    on_break:  0x03A60x22A3
+}
+
+bond HeaderMetricsBond between (Header, MetricsRow) {
+    kind:      corresponds(mapping = date_range_to_metrics)
+    direction: unidirectional(from = Header, to = MetricsRow)
+    strength:  rigid
+    on_break:  0x03A60x22A3
+}
+
+bond FilterChartsBond between (FilterPanel, ChartsGrid) {
+    kind:      corresponds(mapping = filters_to_data)
+    direction: unidirectional(from = FilterPanel, to = ChartsGrid)
+    strength:  flexible
+    on_break:  0x03A60x2193
+}
+
+bond AlertStatusBond between (AlertBanner, StatusBar) {
+    kind:      parallels
+    strength:  flexible
+    on_break:  0x03A60x2193
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 9: SEAMS
+-- ---------------------------------------------------------------------------
+
+seam DataSourceSeam between (MetricsRow, ChartsGrid) {
+    kind:    hard
+    passage: [metrics_data, chart_data, refresh_event]
+    filter:  none
+    failure: {
+        blocks: [lost, blocked]
+        passes: [degraded, partial, stale]
+        transforms: []
+    }
+}
+
+seam ExportSeam between (Header, ChartsGrid) {
+    kind:    soft
+    passage: [export_data, export_status]
+    filter:  none
+    failure: {
+        blocks: [blocked]
+        passes: [partial]
+        transforms: []
+    }
+}
+
+seam AlertSeam between (AlertBanner, MetricsRow) {
+    kind:    soft
+    passage: [alert_trigger, metric_threshold]
+    filter:  severity_filter(min = warning)
+    failure: {
+        blocks: []
+        passes: [cascade]
+        transforms: []
+    }
+}
+
+seam ConnectionSeam between (StatusBar, MetricsRow) {
+    kind:    hard
+    passage: [connection_status, health_data]
+    filter:  none
+    failure: {
+        blocks: [lost]
+        passes: [degraded]
+        transforms: []
+    }
+}

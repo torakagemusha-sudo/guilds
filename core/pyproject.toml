@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "guilds-cli"
+version = "0.1.0"
+description = "Command-line toolkit for GUILDS specifications"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = ["poethepoet>=0.31"]
+pdf = ["reportlab>=4.2"]
+pdf-gui = ["reportlab>=4.2", "kivy>=2.3"]
+
+[project.scripts]
+guilds = "core.guilds_cli:main"
+
+[tool.setuptools.packages.find]
+where = [".."]
+include = ["core", "core.scripts", "core.scripts.*", "guilds_renderers", "guilds_renderers.*"]
+
+[tool.poe.tasks.check_agent_notes]
+cmd = "python core/scripts/check_agent_notes.py"
+help = "Verify core/AGENTS.md keeps the patch-safety guidance"
+
+[tool.poe.tasks.precommit]
+sequence = ["check_agent_notes"]
+help = "Run local repository guard checks"

@@ -1,0 +1,649 @@
+-- =============================================================================
+-- GUILDS Terminal Emulator Specification
+-- =============================================================================
+-- A terminal is a dialogue between human and system conducted through text.
+-- Commands are proposals; outputs are assertions; errors are structured states.
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- SECTION 1: SHARED BINDINGS
+-- ---------------------------------------------------------------------------
+
+let outputCert = 0x03C40x2713
+let inferredCert = 0x03C4~
+let unknownCert = 0x03C40x2205
+
+-- ---------------------------------------------------------------------------
+-- SECTION 2: CORE CLAIMS
+-- ---------------------------------------------------------------------------
+
+claim OutputClaim {
+    content:     text(process_output)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(shell_process)
+    stakes:      medium
+    freshness:   live
+    on_stale:    mark_stale
+}
+
+claim StreamingOutputClaim {
+    content:     text(partial_output)
+    certainty:   0x03C4~
+    provenance:  source.direct(shell_process)
+    stakes:      low
+    freshness:   live
+    on_stale:    mark_stale
+}
+
+claim PromptClaim {
+    content:     text(shell_prompt)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(shell_env)
+    stakes:      low
+    freshness:   event_driven(directory_change)
+    on_stale:    mark_stale
+}
+
+claim WorkingDirClaim {
+    content:     text(current_directory)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(shell_env)
+    stakes:      medium
+    freshness:   event_driven(directory_change)
+    on_stale:    mark_stale
+}
+
+claim ExitCodeClaim {
+    content:     numeric(exit_code)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(process_exit)
+    stakes:      high
+    freshness:   snapshot(command_complete_time)
+    on_stale:    mark_stale
+}
+
+claim RuntimeClaim {
+    content:     numeric(elapsed_seconds)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(process_timer)
+    stakes:      low
+    freshness:   live
+    on_stale:    mark_stale
+}
+
+claim TabTitleClaim {
+    content:     text(inferred_title)
+    certainty:   0x03C4~
+    provenance:  source.derived(process_name, method = title_inference)
+    stakes:      low
+    freshness:   event_driven(process_change)
+    on_stale:    mark_stale
+}
+
+claim ShellTypeClaim {
+    content:     status(shell_name)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(shell_env)
+    stakes:      low
+    freshness:   static
+    on_stale:    mark_stale
+}
+
+claim ConnectionClaim {
+    content:     status(connection_state)
+    certainty:   0x03C4~
+    provenance:  source.derived(heartbeat, method = connection_monitor)
+    stakes:      high
+    freshness:   polled(interval = s(5))
+    on_stale:    mark_stale
+}
+
+claim ErrorClaim {
+    content:     text(stderr_output)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(process_stderr)
+    stakes:      high
+    freshness:   snapshot(error_time)
+    on_stale:    mark_stale
+}
+
+claim SearchResultsClaim {
+    content:     numeric(match_count)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(search_engine)
+    stakes:      low
+    freshness:   event_driven(search_query)
+    on_stale:    remove
+}
+
+claim LoadingClaim {
+    content:     empty("Starting process...")
+    certainty:   0x03C40x2205
+    provenance:  source.direct(system)
+    stakes:      low
+    freshness:   event_driven(process_start)
+    on_stale:    remove
+}
+
+claim CancelWarningClaim {
+    content:     text("Sending interrupt signal")
+    certainty:   0x03C40x2713
+    provenance:  source.direct(system)
+    stakes:      medium
+    freshness:   event_driven(cancel_action)
+    on_stale:    remove
+}
+
+claim KillWarningClaim {
+    content:     text("Force kill will terminate immediately")
+    certainty:   0x03C40x2713
+    provenance:  source.direct(system)
+    stakes:      high
+    freshness:   event_driven(kill_action)
+    on_stale:    remove
+}
+
+claim CloseRunningWarningClaim {
+    content:     text("Process still running in this tab")
+    certainty:   0x03C40x2713
+    provenance:  source.direct(system)
+    stakes:      high
+    freshness:   event_driven(close_action)
+    on_stale:    remove
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 3: AFFORDANCES
+-- ---------------------------------------------------------------------------
+
+afford ExecuteAfford {
+    perceivable:  always_visible
+    offered:      input(type = text)
+    requires:     [shell_ready, input_not_empty]
+    disables:     [ExecuteAfford]
+    contracts: [
+        contract ExecuteContract {
+            trigger:     user_action(ExecuteAfford)
+            obligation:  execute(spawn_process)
+            deadline:    none
+            on_breach:   0x03A60x22A3
+        }
+        contract AckContract {
+            trigger:     user_action(ExecuteAfford)
+            obligation:  acknowledge
+            deadline:    ms(50)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford CancelAfford {
+    perceivable:  context_revealed(process_running)
+    offered:      activate
+    requires:     [process_running]
+    contracts: [
+        contract CancelContract {
+            trigger:     user_action(CancelAfford)
+            obligation:  execute(send_sigint)
+            deadline:    ms(100)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford ForceKillAfford {
+    perceivable:  context_revealed(cancel_attempted)
+    offered:      activate
+    requires:     [process_running, cancel_attempted]
+    contracts: [
+        contract KillWarnFirst {
+            trigger:     phase_enter(0x03C60x2081)
+            obligation:  display(KillWarningClaim)
+            deadline:    none
+            on_breach:   0x03A60x2717
+        }
+        contract KillContract {
+            trigger:     user_action(ForceKillAfford)
+            obligation:  execute(send_sigkill)
+            deadline:    ms(50)
+            on_breach:   0x03A60x2717
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford NewTabAfford {
+    perceivable:  always_visible
+    offered:      activate
+    requires:     [tabs_below_max]
+    contracts: [
+        contract NewTabContract {
+            trigger:     user_action(NewTabAfford)
+            obligation:  execute(spawn_shell)
+            deadline:    s(2)
+            on_breach:   0x03A60x22A3
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford CloseTabAfford {
+    perceivable:  always_visible
+    offered:      activate
+    requires:     [tabs_above_one]
+    contracts: [
+        contract CloseWarnIfRunning {
+            trigger:     condition(process_running)
+            obligation:  display(CloseRunningWarningClaim)
+            deadline:    none
+            on_breach:   0x03A60x2193
+        }
+        contract CloseTabContract {
+            trigger:     user_action(CloseTabAfford)
+            obligation:  execute(terminate_tab)
+            deadline:    ms(500)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford SwitchTabAfford {
+    perceivable:  always_visible
+    offered:      select(cardinality = one)
+    requires:     [tabs_above_one]
+    contracts: [
+        contract SwitchContract {
+            trigger:     user_action(SwitchTabAfford)
+            obligation:  navigate(target_tab)
+            deadline:    ms(100)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford ScrollAfford {
+    perceivable:  context_revealed(output_scrollable)
+    offered:      gesture(kind = scroll, axis = vertical)
+    requires:     [output_scrollable]
+    contracts: [
+        contract ScrollContract {
+            trigger:     user_action(ScrollAfford)
+            obligation:  execute(scroll_viewport)
+            deadline:    ms(16)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford SearchAfford {
+    perceivable:  mode_revealed(phase = 0x03C60x2080)
+    offered:      input(type = text)
+    requires:     [output_not_empty]
+    contracts: [
+        contract SearchContract {
+            trigger:     user_action(SearchAfford)
+            obligation:  display(SearchResultsClaim)
+            deadline:    ms(200)
+            on_breach:   0x03A60x00BD
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford CopyAfford {
+    perceivable:  context_revealed(has_selection)
+    offered:      activate
+    requires:     [has_selection]
+    contracts: [
+        contract CopyContract {
+            trigger:     user_action(CopyAfford)
+            obligation:  execute(copy_to_clipboard)
+            deadline:    ms(100)
+            on_breach:   0x03A60x2193
+        }
+        contract CopyAck {
+            trigger:     user_action(CopyAfford)
+            obligation:  acknowledge
+            deadline:    ms(200)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford ClearAfford {
+    perceivable:  mode_revealed(phase = 0x03C60x2205)
+    offered:      activate
+    requires:     [output_not_empty]
+    contracts: [
+        contract ClearContract {
+            trigger:     user_action(ClearAfford)
+            obligation:  execute(clear_buffer)
+            deadline:    ms(50)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 4: VESSELS
+-- ---------------------------------------------------------------------------
+
+vessel TabButton {
+    budget:      shared(0.9, tab_count)
+    phase:       any
+    weight:      secondary
+    arrangement: sequence(primary, [0.8, 0.2])
+    contains:    [TabTitleClaim, CloseTabAfford]
+    contracts: [
+        contract TabActivate {
+            trigger:     user_action(SwitchTabAfford)
+            obligation:  navigate(this_tab)
+            deadline:    ms(100)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    failures: [
+        FailureSpec {
+            trigger:   shell_crash
+            surfaces:  0x03A60x2717
+            propagates: no
+        }
+    ]
+}
+
+vessel TabBar {
+    budget:      whole(0.05)
+    phase:       any
+    weight:      secondary
+    arrangement: sequence(primary, [0.9, 0.1])
+    contains:    [TabButton, NewTabAfford]
+    bonds:       [TabParallelism]
+}
+
+vessel OutputViewport {
+    budget:      whole(0.80)
+    phase:       [0x03C60x2080, 0x03C60x2081, 0x03C60x2082]
+    weight:      primary
+    arrangement: sequence(primary, [1.0])
+    contains:    [OutputClaim, ScrollAfford, CopyAfford, SearchAfford]
+    contracts: [
+        contract OutputAck {
+            trigger:     system_event(output_received)
+            obligation:  acknowledge
+            deadline:    ms(16)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    failures: [
+        FailureSpec {
+            trigger:   buffer_overflow
+            surfaces:  0x03A60x00BD
+            propagates: no
+        }
+    ]
+}
+
+vessel CommandInput {
+    budget:      whole(0.05)
+    phase:       [0x03C60x2205, 0x03C60x2081]
+    weight:      primary
+    arrangement: sequence(primary, [0.15, 0.85])
+    contains:    [PromptClaim, ExecuteAfford]
+    contracts: [
+        contract InputFocus {
+            trigger:     phase_enter(0x03C60x2205)
+            obligation:  display(PromptClaim)
+            deadline:    ms(100)
+            on_breach:   0x03A60x2193
+        }
+    ]
+}
+
+vessel StatusBar {
+    budget:      whole(0.05)
+    phase:       any
+    weight:      background
+    arrangement: sequence(primary, [0.3, 0.2, 0.2, 0.3])
+    contains:    [WorkingDirClaim, ShellTypeClaim, RuntimeClaim, ConnectionClaim]
+    failures: [
+        FailureSpec {
+            trigger:   connection_lost
+            surfaces:  0x03A60x2205
+            propagates: conditional
+        }
+    ]
+}
+
+vessel ProcessControlOverlay {
+    budget:      whole(0.10)
+    phase:       0x03C60x2081
+    weight:      secondary
+    arrangement: sequence(cross, [0.5, 0.5])
+    contains:    [CancelAfford, ForceKillAfford, RuntimeClaim]
+}
+
+vessel ErrorOverlay {
+    budget:      whole(0.25)
+    phase:       0x03C60x1D63
+    weight:      primary
+    arrangement: sequence(primary, [0.7, 0.3])
+    contains:    [ErrorClaim, ExitCodeClaim]
+}
+
+vessel SearchBar {
+    budget:      whole(0.05)
+    phase:       0x03C60x2080
+    weight:      secondary
+    arrangement: sequence(primary, [0.7, 0.3])
+    contains:    [SearchAfford, SearchResultsClaim]
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 5: MAIN STAGE
+-- ---------------------------------------------------------------------------
+
+stage TerminalStage {
+    budget:  whole(1.0)
+
+    phases: {
+        0x03C60x2205: {
+            arrangement: sequence(primary, [0.05, 0.85, 0.05, 0.05])
+            visible:     [TabBar, OutputViewport, CommandInput, StatusBar]
+            faded:       []
+            hidden:      [ProcessControlOverlay, ErrorOverlay, SearchBar]
+            dominant:    CommandInput
+        }
+        0x03C60x2080: {
+            arrangement: sequence(primary, [0.05, 0.05, 0.80, 0.05, 0.05])
+            visible:     [TabBar, SearchBar, OutputViewport, CommandInput, StatusBar]
+            faded:       [CommandInput]
+            hidden:      [ProcessControlOverlay, ErrorOverlay]
+            dominant:    OutputViewport
+        }
+        0x03C60x2081: {
+            arrangement: sequence(primary, [0.05, 0.75, 0.10, 0.05, 0.05])
+            visible:     [TabBar, OutputViewport, ProcessControlOverlay, CommandInput, StatusBar]
+            faded:       [CommandInput, StatusBar]
+            hidden:      [ErrorOverlay, SearchBar]
+            dominant:    OutputViewport
+        }
+        0x03C60x2082: {
+            arrangement: sequence(primary, [0.05, 0.85, 0.05, 0.05])
+            visible:     [TabBar, OutputViewport, CommandInput, StatusBar]
+            faded:       []
+            hidden:      [ProcessControlOverlay, ErrorOverlay, SearchBar]
+            dominant:    OutputViewport
+        }
+        0x03C60x1D63: {
+            arrangement: sequence(primary, [0.05, 0.60, 0.25, 0.05, 0.05])
+            visible:     [TabBar, OutputViewport, ErrorOverlay, CommandInput, StatusBar]
+            faded:       [StatusBar]
+            hidden:      [ProcessControlOverlay, SearchBar]
+            dominant:    ErrorOverlay
+        }
+    }
+
+    default: {
+        arrangement: sequence(primary, [0.05, 0.85, 0.05, 0.05])
+        visible:     [TabBar, OutputViewport, CommandInput, StatusBar]
+        faded:       []
+        hidden:      [ProcessControlOverlay, ErrorOverlay, SearchBar]
+        dominant:    OutputViewport
+    }
+
+    transition: {
+        duration:   ms(150)
+        curve:      ease-out
+        sequence:   anchor_first
+    }
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 6: FLOWS
+-- ---------------------------------------------------------------------------
+
+flow CommandFlow {
+    trigger:  user_action(ExecuteAfford)
+    steps: [
+        step Spawning {
+            duration:   ms(500)
+            state:      acquiring
+            exit:       on_event(first_output)
+        }
+        step Running {
+            duration:   unbounded
+            state:      streaming(progress = output_lines)
+            exit:       on_event(process_exit)
+        }
+        step Completing {
+            duration:   ms(100)
+            state:      completing
+            exit:       on_complete
+        }
+    ]
+    on_stall: {
+        threshold:  s(30)
+        surface:    0x03A60x27F3
+        recovery:   [CancelAfford, ForceKillAfford]
+    }
+    terminal: success | failure(0x03A6?) | partial(0x03A60x00BD) | abandoned(0x2298)
+}
+
+flow NewTabFlow {
+    trigger:  user_action(NewTabAfford)
+    steps: [
+        step SpawningShell {
+            duration:   s(2)
+            state:      acquiring
+            exit:       on_event(shell_ready)
+        }
+        step Initializing {
+            duration:   ms(500)
+            state:      processing
+            exit:       on_event(prompt_ready)
+        }
+    ]
+    on_stall: {
+        threshold:  s(5)
+        surface:    0x03A60x22A3
+        recovery:   [CloseTabAfford]
+    }
+    terminal: success | failure(0x03A60x2717)
+}
+
+flow SearchFlow {
+    trigger:  user_action(SearchAfford)
+    steps: [
+        step Searching {
+            duration:   ms(500)
+            state:      processing
+            exit:       on_event(search_complete)
+        }
+        step ShowingResults {
+            duration:   unbounded
+            state:      settled
+            exit:       on_user(SearchAfford)
+        }
+    ]
+    on_stall: {
+        threshold:  s(2)
+        surface:    0x03A60x00BD
+        recovery:   []
+    }
+    terminal: success | partial(0x03A60x00BD)
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 7: BONDS
+-- ---------------------------------------------------------------------------
+
+bond TabParallelism between (TabButton, TabButton) {
+    kind:      parallels
+    strength:  rigid
+    on_break:  0x03A60x2192
+}
+
+bond InputOutputCorrespondence between (CommandInput, OutputViewport) {
+    kind:      corresponds(mapping = command_to_output)
+    direction: unidirectional(from = CommandInput, to = OutputViewport)
+    strength:  rigid
+    on_break:  0x03A60x2717
+}
+
+bond ProcessControlBond between (ProcessControlOverlay, OutputViewport) {
+    kind:      corresponds(mapping = process_to_controls)
+    direction: unidirectional(from = OutputViewport, to = ProcessControlOverlay)
+    strength:  flexible
+    on_break:  0x03A60x2193
+}
+
+bond ErrorCorrespondence between (ErrorOverlay, OutputViewport) {
+    kind:      corresponds(mapping = stderr_to_error)
+    direction: unidirectional(from = OutputViewport, to = ErrorOverlay)
+    strength:  flexible
+    on_break:  0x03A60x2193
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 8: SEAMS
+-- ---------------------------------------------------------------------------
+
+seam TabContentSeam between (TabBar, TerminalStage) {
+    kind:    hard
+    passage: [focus, tab_switch_event]
+    filter:  none
+    failure: {
+        blocks: [0x03A60x2193]
+        passes: [0x03A60x2717]
+        transforms: []
+    }
+}
+
+seam OutputProcessSeam between (OutputViewport, CommandInput) {
+    kind:    soft
+    passage: [stdout_data, stderr_data, exit_event]
+    filter:  none
+    failure: {
+        blocks: []
+        passes: [0x03A60x2717, 0x03A60x22A3]
+        transforms: []
+    }
+}
+
+seam StatusEnvSeam between (StatusBar, CommandInput) {
+    kind:    soft
+    passage: [cwd_data, shell_type_data]
+    filter:  none
+    failure: {
+        blocks: [0x03A60x2193]
+        passes: []
+        transforms: []
+    }
+}

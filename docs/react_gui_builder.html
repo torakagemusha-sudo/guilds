@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GUILDS React Builder</title>
+    <style>
+        :root {
+            --bg: #10191d;
+            --panel: rgba(20, 31, 36, 0.84);
+            --panel-2: rgba(12, 20, 23, 0.92);
+            --text: #edf5ef;
+            --muted: #9fb4ad;
+            --line: rgba(255, 255, 255, 0.08);
+            --accent: #d6f36a;
+            --accent-2: #79d0ff;
+            --danger: #ff9a7a;
+            --shadow: 0 18px 60px rgba(0, 0, 0, 0.42);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 12% 18%, rgba(214, 243, 106, 0.08), transparent 24%),
+                radial-gradient(circle at 82% 10%, rgba(121, 208, 255, 0.08), transparent 24%),
+                linear-gradient(145deg, #0c1214, #132024 46%, #0f171b);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: radial-gradient(circle at center, black, transparent 78%);
+        }
+
+        #root { position: relative; z-index: 1; }
+
+        .app {
+            max-width: 1480px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .hero, .panel {
+            background: var(--panel);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+        }
+
+        .hero {
+            padding: 22px;
+            margin-bottom: 20px;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(214, 243, 106, 0.09);
+            border: 1px solid rgba(214, 243, 106, 0.2);
+            color: var(--accent);
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 12px 0 10px;
+            font-family: "Palatino Linotype", "Book Antiqua", serif;
+            font-size: clamp(2.2rem, 5vw, 4.4rem);
+            line-height: 0.95;
+            max-width: 8ch;
+        }
+
+        .lede, .muted {
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .hero-grid, .workspace {
+            display: grid;
+            gap: 18px;
+        }
+
+        .hero-grid { grid-template-columns: 1.2fr 0.8fr; }
+        .workspace { grid-template-columns: 280px minmax(0, 1fr) 360px; }
+
+        .side-card {
+            padding: 18px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid var(--line);
+        }
+
+        .metric-row, .tag-row, .toolbar, .panel-head {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .metric-row { margin-top: 14px; }
+
+        .metric {
+            min-width: 120px;
+            padding: 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid var(--line);
+        }
+
+        .metric strong {
+            display: block;
+            font-size: 1.2rem;
+        }
+
+        .metric span, .tag {
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .panel {
+            padding: 16px;
+        }
+
+        .panel-head {
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .panel h2, .side-card h2 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent-2);
+        }
+
+        .list, .lane-stack, .exports {
+            display: grid;
+            gap: 12px;
+        }
+
+        .chip, .ghost, .accent, .danger {
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 0;
+        }
+
+        .chip {
+            background: rgba(121, 208, 255, 0.08);
+            border: 1px solid rgba(121, 208, 255, 0.2);
+            color: var(--accent-2);
+        }
+
+        .ghost {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.045);
+            border: 1px solid var(--line);
+        }
+
+        .accent {
+            color: #172109;
+            background: var(--accent);
+        }
+
+        .danger {
+            color: var(--danger);
+            background: rgba(255, 154, 122, 0.12);
+            border: 1px solid rgba(255, 154, 122, 0.22);
+        }
+
+        .palette-item, .node {
+            border-radius: 16px;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--line);
+            cursor: grab;
+        }
+
+        .palette-item:hover, .node:hover {
+            border-color: rgba(214, 243, 106, 0.28);
+        }
+
+        .type-claim { border-left: 4px solid #79d0ff; }
+        .type-afford { border-left: 4px solid #d6f36a; }
+        .type-vessel { border-left: 4px solid #f1b56b; }
+        .type-flow { border-left: 4px solid #ff9a7a; }
+        .type-stage { border-left: 4px solid #d9a9ff; }
+
+        .canvas {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .lane {
+            min-height: 440px;
+            border-radius: 18px;
+            padding: 12px;
+            background: rgba(14, 23, 27, 0.75);
+            border: 1px dashed rgba(255, 255, 255, 0.08);
+        }
+
+        .lane.hot {
+            border-color: rgba(214, 243, 106, 0.34);
+            background: rgba(24, 38, 31, 0.48);
+        }
+
+        .hint {
+            padding: 14px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px dashed var(--line);
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .selected {
+            border-color: rgba(214, 243, 106, 0.38);
+            box-shadow: 0 0 0 1px rgba(214, 243, 106, 0.18);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        input, textarea, select {
+            width: 100%;
+            margin-top: 6px;
+            padding: 11px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: var(--panel-2);
+            color: var(--text);
+            font: inherit;
+        }
+
+        textarea {
+            min-height: 84px;
+            resize: vertical;
+        }
+
+        .phases {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .phase {
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--muted);
+            border-radius: 12px;
+            padding: 9px 8px;
+            font-size: 0.74rem;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .phase.on {
+            color: var(--text);
+            border-color: rgba(121, 208, 255, 0.22);
+            background: rgba(121, 208, 255, 0.08);
+        }
+
+        pre {
+            margin: 0;
+            padding: 14px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: rgba(6, 11, 12, 0.84);
+            color: #d9e7df;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            max-height: 220px;
+            overflow: auto;
+        }
+
+        @media (max-width: 1220px) {
+            .hero-grid, .workspace, .canvas { grid-template-columns: 1fr; }
+            .lane { min-height: 240px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel">
+        const { useMemo, useState } = React;
+
+        const phases = ["idle", "orient", "execute", "verify", "integrate", "recover"];
+        const lanes = [
+            { id: "surface", name: "Surface", hint: "Primary work surface." },
+            { id: "support", name: "Support", hint: "Helpers and side actions." },
+            { id: "recover", name: "Recover", hint: "Errors, retries, and fallback UX." }
+        ];
+        const palette = [
+            ["claim", "StatusClaim", "Display state, output, or progress."],
+            ["afford", "RunAfford", "Let the user trigger a clear action."],
+            ["vessel", "ControlPanel", "Group related claims and affordances."],
+            ["flow", "JobFlow", "Represent a multi-step process."],
+            ["stage", "MainStage", "Top-level phase orchestration."]
+        ];
+
+        function kindClass(type) {
+            return "type-" + type;
+        }
+
+        function slugify(value) {
+            return value.replace(/([a-z])([A-Z])/g, "$1-$2").replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase();
+        }
+
+        function App() {
+            const [items, setItems] = useState([
+                { id: "a", laneId: "surface", type: "vessel", name: "DisplayPanel", desc: "Primary output panel.", notes: "Use for key claims.", phases: ["idle", "execute", "verify"] },
+                { id: "b", laneId: "support", type: "afford", name: "RunAfford", desc: "Main user action.", notes: "Good in idle and recover.", phases: ["idle", "execute", "recover"] },
+                { id: "c", laneId: "recover", type: "claim", name: "ErrorClaim", desc: "Failure surface text.", notes: "Keep recovery specific.", phases: ["recover"] }
+            ]);
+            const [selectedId, setSelectedId] = useState("a");
+            const [drag, setDrag] = useState(null);
+            const [hotLane, setHotLane] = useState(null);
+
+            const selected = items.find((item) => item.id === selectedId) || null;
+
+            const grouped = useMemo(() => {
+                const map = {};
+                lanes.forEach((lane) => {
+                    map[lane.id] = items.filter((item) => item.laneId === lane.id);
+                });
+                return map;
+            }, [items]);
+
+            const guildsDraft = useMemo(() => {
+                const claims = items.filter((item) => item.type === "claim").map((item) => [
+                    "claim " + item.name + " {",
+                    "    content:     text(" + slugify(item.name) + ")",
+                    "    certainty:   0x03C40x2713",
+                    "    provenance:  source.direct(runtime)",
+                    "    stakes:      medium",
+                    "    freshness:   event_driven(update)",
+                    "    on_stale:    mark_stale",
+                    "}"
+                ].join("\n"));
+                const affords = items.filter((item) => item.type === "afford").map((item) => [
+                    "afford " + item.name + " {",
+                    "    perceivable: always_visible",
+                    "    offered:     activate",
+                    "    requires:    [ready]",
+                    "    on_unavail:  fade_locked",
+                    "}"
+                ].join("\n"));
+                const vessels = items.filter((item) => item.type === "vessel").map((item) => {
+                    const children = items.filter((child) => child.laneId === item.laneId && child.id !== item.id && child.type !== "stage").slice(0, 4).map((child) => child.name);
+                    return [
+                        "vessel " + item.name + " {",
+                        "    budget:      whole(0.33)",
+                        "    phase:       any",
+                        "    weight:      primary",
+                        "    arrangement: sequence(primary, [1.0])",
+                        "    contains:    [" + children.join(", ") + "]",
+                        "}"
+                    ].join("\n");
+                });
+                const visible = items.filter((item) => item.type === "vessel").map((item) => item.name).join(", ");
+                const dominant = items.find((item) => item.type === "vessel")?.name || "MainPanel";
+                const stage = [
+                    "stage WorkspaceStage {",
+                    "    budget: whole(1.0)",
+                    "",
+                    "    default: {",
+                    "        arrangement: sequence(cross, [0.5, 0.3, 0.2])",
+                    "        visible:     [" + visible + "]",
+                    "        faded:       []",
+                    "        hidden:      []",
+                    "        dominant:    " + dominant,
+                    "    }",
+                    "}"
+                ].join("\n");
+                return claims.concat(affords).concat(vessels).concat(stage).join("\n\n");
+            }, [items]);
+
+            const reactStub = useMemo(() => {
+                return [
+                    "const board = " + JSON.stringify(lanes.map((lane) => ({ id: lane.id, name: lane.name, items: grouped[lane.id].map((item) => ({ name: item.name, type: item.type })) })), null, 2) + ";",
+                    "",
+                    "function GuildsBoard() {",
+                    "  return (",
+                    "    <section className=\"guilds-board\">",
+                    "      {board.map((lane) => (",
+                    "        <div key={lane.id} className=\"lane\">",
+                    "          <h3>{lane.name}</h3>",
+                    "          {lane.items.map((item) => <div key={item.name}>{item.name}</div>)}",
+                    "        </div>",
+                    "      ))}",
+                    "    </section>",
+                    "  );",
+                    "}"
+                ].join("\n");
+            }, [grouped]);
+
+            const json = useMemo(() => JSON.stringify({ lanes: lanes.map((lane) => ({ id: lane.id, name: lane.name, items: grouped[lane.id] })) }, null, 2), [grouped]);
+
+            function addFromPalette(entry, laneId) {
+                const id = String(Date.now()) + String(Math.floor(Math.random() * 100));
+                const [type, name, desc] = entry;
+                const next = { id, laneId, type, name, desc, notes: "", phases: ["idle"] };
+                setItems((current) => current.concat(next));
+                setSelectedId(id);
+            }
+
+            function onDrop(laneId) {
+                if (!drag) return;
+                if (drag.kind === "palette") {
+                    addFromPalette(drag.entry, laneId);
+                } else {
+                    setItems((current) => current.map((item) => item.id === drag.id ? { ...item, laneId } : item));
+                    setSelectedId(drag.id);
+                }
+                setDrag(null);
+                setHotLane(null);
+            }
+
+            function update(field, value) {
+                if (!selected) return;
+                setItems((current) => current.map((item) => item.id === selected.id ? { ...item, [field]: value } : item));
+            }
+
+            function togglePhase(phase) {
+                if (!selected) return;
+                const next = selected.phases.includes(phase) ? selected.phases.filter((p) => p !== phase) : selected.phases.concat(phase);
+                update("phases", next);
+            }
+
+            function removeSelected() {
+                if (!selected) return;
+                const next = items.filter((item) => item.id !== selected.id);
+                setItems(next);
+                setSelectedId(next[0]?.id || null);
+            }
+
+            function copyText(value) {
+                if (navigator.clipboard?.writeText) navigator.clipboard.writeText(value);
+            }
+
+            return (
+                <div className="app">
+                    <section className="hero">
+                        <div className="hero-grid">
+                            <div>
+                                <span className="eyebrow">React Prototype Builder</span>
+                                <h1>Drag your GUI into shape.</h1>
+                                <p className="lede">
+                                    Use this to rough out claims, affordances, vessels, and recovery
+                                    surfaces before you commit them to a real .guilds spec. Drag from
+                                    the palette, drop into lanes, then copy the generated starter draft.
+                                </p>
+                                <div className="metric-row">
+                                    <div className="metric"><strong>{items.length}</strong><span>Canvas Nodes</span></div>
+                                    <div className="metric"><strong>{items.filter((item) => item.type === "vessel").length}</strong><span>Vessels</span></div>
+                                    <div className="metric"><strong>{items.filter((item) => item.laneId === "recover").length}</strong><span>Recovery Items</span></div>
+                                </div>
+                            </div>
+                            <div className="side-card">
+                                <h2>Use It Like This</h2>
+                                <p className="muted">Surface is your main task area. Support is for side tools. Recover is where you design failure handling on purpose.</p>
+                                <div className="toolbar">
+                                    <span className="chip">Drag</span>
+                                    <span className="chip">Rename</span>
+                                    <span className="chip">Export</span>
+                                </div>
+                                <p className="muted">This page is self-contained and loads React from a CDN, so it is best used as a quick planner inside the repo.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="workspace">
+                        <aside className="panel">
+                            <div className="panel-head">
+                                <h2>Palette</h2>
+                                <button className="ghost" onClick={() => { setItems([]); setSelectedId(null); }}>Clear</button>
+                            </div>
+                            <p className="muted">Drag a primitive into any lane.</p>
+                            <div className="list">
+                                {palette.map((entry) => (
+                                    <div
+                                        key={entry[0]}
+                                        className={"palette-item " + kindClass(entry[0])}
+                                        draggable
+                                        onDragStart={() => setDrag({ kind: "palette", entry })}
+                                        onDragEnd={() => setDrag(null)}
+                                    >
+                                        <strong>{entry[1]}</strong>
+                                        <div className="muted">{entry[2]}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </aside>
+
+                        <main className="panel">
+                            <div className="panel-head">
+                                <h2>Canvas</h2>
+                                <span className="muted">Three lanes work well as a quick storyboard.</span>
+                            </div>
+                            <div className="canvas">
+                                {lanes.map((lane) => (
+                                    <section
+                                        key={lane.id}
+                                        className={"lane" + (hotLane === lane.id ? " hot" : "")}
+                                        onDragOver={(event) => { event.preventDefault(); setHotLane(lane.id); }}
+                                        onDragLeave={() => setHotLane((current) => current === lane.id ? null : current)}
+                                        onDrop={(event) => { event.preventDefault(); onDrop(lane.id); }}
+                                    >
+                                        <div className="panel-head">
+                                            <div>
+                                                <strong>{lane.name}</strong>
+                                                <div className="muted">{lane.hint}</div>
+                                            </div>
+                                            <span className="chip">{grouped[lane.id].length}</span>
+                                        </div>
+                                        <div className="lane-stack">
+                                            {grouped[lane.id].length === 0 && <div className="hint">Drop here.</div>}
+                                            {grouped[lane.id].map((item) => (
+                                                <article
+                                                    key={item.id}
+                                                    className={"node " + kindClass(item.type) + (item.id === selectedId ? " selected" : "")}
+                                                    draggable
+                                                    onDragStart={() => setDrag({ kind: "node", id: item.id })}
+                                                    onDragEnd={() => { setDrag(null); setHotLane(null); }}
+                                                    onClick={() => setSelectedId(item.id)}
+                                                >
+                                                    <strong>{item.name}</strong>
+                                                    <div className="muted">{item.desc}</div>
+                                                    <div className="tag-row">
+                                                        <span className="tag">{item.type}</span>
+                                                        <span className="tag">{item.phases.join(", ") || "none"}</span>
+                                                    </div>
+                                                </article>
+                                            ))}
+                                        </div>
+                                    </section>
+                                ))}
+                            </div>
+                        </main>
+
+                        <aside className="panel">
+                            <div className="panel-head">
+                                <h2>Inspector</h2>
+                                {selected && <button className="danger" onClick={removeSelected}>Delete</button>}
+                            </div>
+                            {!selected ? (
+                                <div className="hint">Select a node to edit it.</div>
+                            ) : (
+                                <>
+                                    <label>Node Name<input value={selected.name} onChange={(event) => update("name", event.target.value)} /></label>
+                                    <label>Type
+                                        <select value={selected.type} onChange={(event) => update("type", event.target.value)}>
+                                            <option value="claim">claim</option>
+                                            <option value="afford">afford</option>
+                                            <option value="vessel">vessel</option>
+                                            <option value="flow">flow</option>
+                                            <option value="stage">stage</option>
+                                        </select>
+                                    </label>
+                                    <label>Description<textarea value={selected.desc} onChange={(event) => update("desc", event.target.value)} /></label>
+                                    <label>Notes<textarea value={selected.notes} onChange={(event) => update("notes", event.target.value)} /></label>
+                                    <label>Visible Phases</label>
+                                    <div className="phases">
+                                        {phases.map((phase) => (
+                                            <button
+                                                key={phase}
+                                                className={"phase" + (selected.phases.includes(phase) ? " on" : "")}
+                                                type="button"
+                                                onClick={() => togglePhase(phase)}
+                                            >
+                                                {phase}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                            <div className="exports">
+                                <div>
+                                    <div className="panel-head"><h2>GUILDS Draft</h2><button className="accent" onClick={() => copyText(guildsDraft)}>Copy</button></div>
+                                    <pre>{guildsDraft || "-- Drag nodes onto the canvas."}</pre>
+                                </div>
+                                <div>
+                                    <div className="panel-head"><h2>React Stub</h2><button className="accent" onClick={() => copyText(reactStub)}>Copy</button></div>
+                                    <pre>{reactStub}</pre>
+                                </div>
+                                <div>
+                                    <div className="panel-head"><h2>Layout JSON</h2><button className="accent" onClick={() => copyText(json)}>Copy</button></div>
+                                    <pre>{json}</pre>
+                                </div>
+                            </div>
+                        </aside>
+                    </section>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,701 @@
+-- =============================================================================
+-- GUILDS File Browser Specification
+-- =============================================================================
+-- A file browser demonstrating advanced GUILDS concepts:
+-- - Multiple phases (orient, execute, verify)
+-- - Complex flows for file operations
+-- - Failure handling for file system errors
+-- - Certainty grades for file metadata
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- SECTION 1: CLAIMS
+-- ---------------------------------------------------------------------------
+
+claim CurrentPathClaim {
+    content:     text(current_directory_path)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(filesystem)
+    stakes:      high
+    freshness:   event_driven(directory_change)
+    on_stale:    mark_stale
+}
+
+claim FileListClaim {
+    content:     collection(file_entries)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(filesystem)
+    stakes:      high
+    freshness:   event_driven(directory_change)
+    on_stale:    mark_stale
+}
+
+claim SelectedFileClaim {
+    content:     text(selected_file_name)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(user_selection)
+    stakes:      medium
+    freshness:   event_driven(selection_change)
+    on_stale:    remove
+}
+
+claim FileSizeClaim {
+    content:     numeric(file_size_bytes)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(filesystem)
+    stakes:      low
+    freshness:   snapshot(file_stat_time)
+    on_stale:    mark_stale
+}
+
+claim FileModifiedClaim {
+    content:     text(modification_date)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(filesystem)
+    stakes:      low
+    freshness:   snapshot(file_stat_time)
+    on_stale:    mark_stale
+}
+
+claim FileTypeClaim {
+    content:     status(file_type)
+    certainty:   0x03C4~
+    provenance:  source.derived(file_extension, method = type_inference)
+    stakes:      low
+    freshness:   static
+    on_stale:    mark_stale
+}
+
+claim FileCountClaim {
+    content:     numeric(total_file_count)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(filesystem)
+    stakes:      low
+    freshness:   event_driven(directory_change)
+    on_stale:    mark_stale
+}
+
+claim DiskSpaceClaim {
+    content:     numeric(available_space_bytes)
+    certainty:   0x03C4~
+    provenance:  source.derived(disk_stat, method = space_calculation)
+    stakes:      medium
+    freshness:   polled(interval = s(30))
+    on_stale:    mark_stale
+}
+
+claim SearchResultsClaim {
+    content:     collection(matching_files)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(search_engine)
+    stakes:      medium
+    freshness:   event_driven(search_query)
+    on_stale:    remove
+}
+
+claim CopyProgressClaim {
+    content:     numeric(copy_percentage)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(copy_operation)
+    stakes:      high
+    freshness:   live
+    on_stale:    mark_stale
+}
+
+claim DeleteConfirmClaim {
+    content:     text(confirm_delete_message)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(system)
+    stakes:      high
+    freshness:   event_driven(delete_action)
+    on_stale:    remove
+}
+
+claim ErrorClaim {
+    content:     text(error_message)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(filesystem)
+    stakes:      high
+    freshness:   event_driven(error_occurred)
+    on_stale:    remove
+}
+
+claim PermissionClaim {
+    content:     status(permission_string)
+    certainty:   0x03C40x2713
+    provenance:  source.direct(filesystem)
+    stakes:      high
+    freshness:   snapshot(file_stat_time)
+    on_stale:    mark_stale
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 2: AFFORDANCES
+-- ---------------------------------------------------------------------------
+
+afford NavigateAfford {
+    perceivable:  always_visible
+    offered:      select(cardinality = one)
+    requires:     [is_directory]
+    contracts: [
+        contract Navigate {
+            trigger:     user_action(NavigateAfford)
+            obligation:  execute(change_directory)
+            deadline:    s(2)
+            on_breach:   0x03A60x22A3
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford SelectAfford {
+    perceivable:  always_visible
+    offered:      select(cardinality = many)
+    requires:     []
+    contracts: [
+        contract Select {
+            trigger:     user_action(SelectAfford)
+            obligation:  execute(update_selection)
+            deadline:    ms(50)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford OpenAfford {
+    perceivable:  always_visible
+    offered:      activate
+    requires:     [has_selection, is_file]
+    contracts: [
+        contract Open {
+            trigger:     user_action(OpenAfford)
+            obligation:  execute(open_file)
+            deadline:    s(5)
+            on_breach:   0x03A60x22A3
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford CopyAfford {
+    perceivable:  context_revealed(has_selection)
+    offered:      activate
+    requires:     [has_selection, has_read_permission]
+    contracts: [
+        contract Copy {
+            trigger:     user_action(CopyAfford)
+            obligation:  execute(copy_to_clipboard)
+            deadline:    ms(500)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford PasteAfford {
+    perceivable:  context_revealed(clipboard_has_files)
+    offered:      activate
+    requires:     [clipboard_has_files, has_write_permission]
+    contracts: [
+        contract Paste {
+            trigger:     user_action(PasteAfford)
+            obligation:  execute(paste_files)
+            deadline:    none
+            on_breach:   0x03A60x22A3
+        }
+        contract PasteProgress {
+            trigger:     user_action(PasteAfford)
+            obligation:  display(CopyProgressClaim)
+            deadline:    ms(100)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford DeleteAfford {
+    perceivable:  context_revealed(has_selection)
+    offered:      activate
+    requires:     [has_selection, has_write_permission]
+    contracts: [
+        contract ConfirmDelete {
+            trigger:     user_action(DeleteAfford)
+            obligation:  display(DeleteConfirmClaim)
+            deadline:    ms(50)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford ConfirmDeleteAfford {
+    perceivable:  context_revealed(delete_pending)
+    offered:      activate
+    requires:     [delete_pending]
+    contracts: [
+        contract ExecuteDelete {
+            trigger:     user_action(ConfirmDeleteAfford)
+            obligation:  execute(delete_files)
+            deadline:    s(30)
+            on_breach:   0x03A60x22A3
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford CancelDeleteAfford {
+    perceivable:  context_revealed(delete_pending)
+    offered:      activate
+    requires:     [delete_pending]
+    contracts: [
+        contract CancelDelete {
+            trigger:     user_action(CancelDeleteAfford)
+            obligation:  execute(clear_delete_pending)
+            deadline:    ms(50)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford RenameAfford {
+    perceivable:  context_revealed(single_selection)
+    offered:      input(type = text)
+    requires:     [single_selection, has_write_permission]
+    contracts: [
+        contract Rename {
+            trigger:     user_action(RenameAfford)
+            obligation:  execute(rename_file)
+            deadline:    s(2)
+            on_breach:   0x03A60x22A3
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford NewFolderAfford {
+    perceivable:  always_visible
+    offered:      input(type = text)
+    requires:     [has_write_permission]
+    contracts: [
+        contract CreateFolder {
+            trigger:     user_action(NewFolderAfford)
+            obligation:  execute(create_directory)
+            deadline:    s(2)
+            on_breach:   0x03A60x22A3
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford SearchAfford {
+    perceivable:  always_visible
+    offered:      input(type = text)
+    requires:     []
+    contracts: [
+        contract Search {
+            trigger:     user_action(SearchAfford)
+            obligation:  display(SearchResultsClaim)
+            deadline:    s(5)
+            on_breach:   0x03A60x00BD
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford RefreshAfford {
+    perceivable:  always_visible
+    offered:      activate
+    requires:     []
+    contracts: [
+        contract Refresh {
+            trigger:     user_action(RefreshAfford)
+            obligation:  execute(reload_directory)
+            deadline:    s(2)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    on_unavail:   hidden
+}
+
+afford UpAfford {
+    perceivable:  context_revealed(not_at_root)
+    offered:      activate
+    requires:     [not_at_root]
+    contracts: [
+        contract GoUp {
+            trigger:     user_action(UpAfford)
+            obligation:  execute(navigate_parent)
+            deadline:    s(2)
+            on_breach:   0x03A60x22A3
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford BackAfford {
+    perceivable:  context_revealed(has_history)
+    offered:      activate
+    requires:     [has_history]
+    contracts: [
+        contract GoBack {
+            trigger:     user_action(BackAfford)
+            obligation:  execute(navigate_back)
+            deadline:    s(2)
+            on_breach:   0x03A60x22A3
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+afford ForwardAfford {
+    perceivable:  context_revealed(has_forward_history)
+    offered:      activate
+    requires:     [has_forward_history]
+    contracts: [
+        contract GoForward {
+            trigger:     user_action(ForwardAfford)
+            obligation:  execute(navigate_forward)
+            deadline:    s(2)
+            on_breach:   0x03A60x22A3
+        }
+    ]
+    on_unavail:   fade_locked
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 3: VESSELS
+-- ---------------------------------------------------------------------------
+
+vessel NavigationBar {
+    budget:      whole(0.08)
+    phase:       any
+    weight:      secondary
+    arrangement: sequence(primary, [0.1, 0.1, 0.1, 0.6, 0.1])
+    contains:    [BackAfford, ForwardAfford, UpAfford, CurrentPathClaim, RefreshAfford]
+    failures: [
+        FailureSpec {
+            trigger:   navigation_error
+            surfaces:  0x03A60x22A3
+            propagates: conditional
+        }
+    ]
+}
+
+vessel Toolbar {
+    budget:      whole(0.07)
+    phase:       any
+    weight:      secondary
+    arrangement: sequence(primary, [0.15, 0.15, 0.15, 0.15, 0.15, 0.25])
+    contains:    [NewFolderAfford, CopyAfford, PasteAfford, DeleteAfford, RenameAfford, SearchAfford]
+}
+
+vessel FileList {
+    budget:      whole(0.65)
+    phase:       [0x03C60x2205, 0x03C60x2080, 0x03C60x2081]
+    weight:      primary
+    arrangement: sequence(primary, [1.0])
+    contains:    [FileListClaim, SelectAfford, NavigateAfford, OpenAfford]
+    contracts: [
+        contract ListDisplay {
+            trigger:     system_event(directory_loaded)
+            obligation:  display(FileListClaim)
+            deadline:    ms(100)
+            on_breach:   0x03A60x2193
+        }
+    ]
+    failures: [
+        FailureSpec {
+            trigger:   permission_denied
+            surfaces:  0x03A60x22A3
+            propagates: no
+        }
+        FailureSpec {
+            trigger:   directory_not_found
+            surfaces:  0x03A60x2205
+            propagates: yes
+        }
+    ]
+}
+
+vessel DetailPanel {
+    budget:      whole(0.15)
+    phase:       [0x03C60x2080, 0x03C60x2082]
+    weight:      secondary
+    arrangement: sequence(cross, [0.2, 0.2, 0.2, 0.2, 0.2])
+    contains:    [SelectedFileClaim, FileSizeClaim, FileModifiedClaim, FileTypeClaim, PermissionClaim]
+}
+
+vessel StatusBar {
+    budget:      whole(0.05)
+    phase:       any
+    weight:      background
+    arrangement: sequence(primary, [0.4, 0.3, 0.3])
+    contains:    [FileCountClaim, DiskSpaceClaim, SelectedFileClaim]
+}
+
+vessel ProgressOverlay {
+    budget:      whole(0.15)
+    phase:       0x03C60x2081
+    weight:      primary
+    arrangement: sequence(primary, [1.0])
+    contains:    [CopyProgressClaim]
+}
+
+vessel DeleteConfirmDialog {
+    budget:      whole(0.25)
+    phase:       0x03C60x2082
+    weight:      primary
+    arrangement: sequence(primary, [0.6, 0.2, 0.2])
+    contains:    [DeleteConfirmClaim, ConfirmDeleteAfford, CancelDeleteAfford]
+}
+
+vessel SearchResults {
+    budget:      whole(0.50)
+    phase:       0x03C60x2080
+    weight:      primary
+    arrangement: sequence(primary, [1.0])
+    contains:    [SearchResultsClaim, SelectAfford, NavigateAfford]
+}
+
+vessel ErrorDialog {
+    budget:      whole(0.25)
+    phase:       0x03C60x1D63
+    weight:      primary
+    arrangement: sequence(primary, [1.0])
+    contains:    [ErrorClaim]
+    failures: [
+        FailureSpec {
+            trigger:   critical_error
+            surfaces:  0x03A60x2717
+            propagates: yes
+        }
+    ]
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 4: STAGE
+-- ---------------------------------------------------------------------------
+
+stage FileBrowserStage {
+    budget:  whole(1.0)
+
+    phases: {
+        0x03C60x2205: {
+            arrangement: sequence(primary, [0.08, 0.07, 0.65, 0.15, 0.05])
+            visible:     [NavigationBar, Toolbar, FileList, DetailPanel, StatusBar]
+            faded:       [DetailPanel]
+            hidden:      [ProgressOverlay, DeleteConfirmDialog, SearchResults, ErrorDialog]
+            dominant:    FileList
+        }
+        0x03C60x2080: {
+            arrangement: sequence(primary, [0.08, 0.07, 0.50, 0.30, 0.05])
+            visible:     [NavigationBar, Toolbar, SearchResults, DetailPanel, StatusBar]
+            faded:       []
+            hidden:      [FileList, ProgressOverlay, DeleteConfirmDialog, ErrorDialog]
+            dominant:    SearchResults
+        }
+        0x03C60x2081: {
+            arrangement: sequence(primary, [0.08, 0.07, 0.50, 0.15, 0.15, 0.05])
+            visible:     [NavigationBar, Toolbar, FileList, DetailPanel, ProgressOverlay, StatusBar]
+            faded:       [Toolbar, DetailPanel]
+            hidden:      [DeleteConfirmDialog, SearchResults, ErrorDialog]
+            dominant:    ProgressOverlay
+        }
+        0x03C60x2082: {
+            arrangement: sequence(primary, [0.08, 0.07, 0.40, 0.25, 0.15, 0.05])
+            visible:     [NavigationBar, Toolbar, FileList, DeleteConfirmDialog, DetailPanel, StatusBar]
+            faded:       [FileList, Toolbar]
+            hidden:      [ProgressOverlay, SearchResults, ErrorDialog]
+            dominant:    DeleteConfirmDialog
+        }
+        0x03C60x1D63: {
+            arrangement: sequence(primary, [0.08, 0.07, 0.50, 0.25, 0.05, 0.05])
+            visible:     [NavigationBar, Toolbar, FileList, ErrorDialog, DetailPanel, StatusBar]
+            faded:       [FileList, Toolbar, DetailPanel]
+            hidden:      [ProgressOverlay, DeleteConfirmDialog, SearchResults]
+            dominant:    ErrorDialog
+        }
+    }
+
+    default: {
+        arrangement: sequence(primary, [0.08, 0.07, 0.65, 0.15, 0.05])
+        visible:     [NavigationBar, Toolbar, FileList, DetailPanel, StatusBar]
+        faded:       []
+        hidden:      [ProgressOverlay, DeleteConfirmDialog, SearchResults, ErrorDialog]
+        dominant:    FileList
+    }
+
+    transition: {
+        duration:   ms(200)
+        curve:      ease-in-out
+        sequence:   anchor_first
+    }
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 5: FLOWS
+-- ---------------------------------------------------------------------------
+
+flow NavigationFlow {
+    trigger:  user_action(NavigateAfford)
+    steps: [
+        step Loading {
+            duration:   s(2)
+            state:      acquiring
+            exit:       on_event(directory_loaded)
+        }
+        step Rendering {
+            duration:   ms(100)
+            state:      processing
+            exit:       on_event(list_rendered)
+        }
+    ]
+    on_stall: {
+        threshold:  s(5)
+        surface:    0x03A60x22A3
+        recovery:   [RefreshAfford, UpAfford]
+    }
+    terminal: success | failure(0x03A60x22A3) | failure(0x03A60x2205)
+}
+
+flow CopyPasteFlow {
+    trigger:  user_action(PasteAfford)
+    steps: [
+        step Preparing {
+            duration:   ms(500)
+            state:      acquiring
+            exit:       on_event(copy_started)
+        }
+        step Copying {
+            duration:   unbounded
+            state:      streaming(progress = bytes_copied)
+            exit:       on_event(copy_complete)
+        }
+        step Verifying {
+            duration:   s(2)
+            state:      completing
+            exit:       on_event(copy_verified)
+        }
+    ]
+    on_stall: {
+        threshold:  s(60)
+        surface:    0x03A60x231B
+        recovery:   []
+    }
+    terminal: success | failure(0x03A60x22A3) | partial(0x03A60x00BD)
+}
+
+flow DeleteFlow {
+    trigger:  user_action(ConfirmDeleteAfford)
+    steps: [
+        step Deleting {
+            duration:   s(30)
+            state:      processing
+            exit:       on_event(delete_complete)
+        }
+        step Refreshing {
+            duration:   ms(500)
+            state:      completing
+            exit:       on_event(list_refreshed)
+        }
+    ]
+    on_stall: {
+        threshold:  s(60)
+        surface:    0x03A60x22A3
+        recovery:   []
+    }
+    terminal: success | failure(0x03A60x22A3) | partial(0x03A60x00BD)
+}
+
+flow SearchFlow {
+    trigger:  user_action(SearchAfford)
+    steps: [
+        step Searching {
+            duration:   s(5)
+            state:      processing
+            exit:       on_event(search_complete)
+        }
+        step Displaying {
+            duration:   ms(100)
+            state:      completing
+            exit:       on_complete
+        }
+    ]
+    on_stall: {
+        threshold:  s(10)
+        surface:    0x03A60x00BD
+        recovery:   []
+    }
+    terminal: success | partial(0x03A60x00BD)
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 6: BONDS
+-- ---------------------------------------------------------------------------
+
+bond FileSelectionBond between (FileList, DetailPanel) {
+    kind:      corresponds(mapping = selection_to_details)
+    direction: unidirectional(from = FileList, to = DetailPanel)
+    strength:  rigid
+    on_break:  0x03A60x2193
+}
+
+bond NavigationPathBond between (NavigationBar, FileList) {
+    kind:      corresponds(mapping = path_to_contents)
+    direction: unidirectional(from = NavigationBar, to = FileList)
+    strength:  rigid
+    on_break:  0x03A60x22A3
+}
+
+bond SearchResultsBond between (FileList, SearchResults) {
+    kind:      corresponds(mapping = files_to_search)
+    direction: bidirectional
+    strength:  flexible
+    on_break:  0x03A60x2193
+}
+
+bond StatusCountBond between (FileList, StatusBar) {
+    kind:      corresponds(mapping = files_to_count)
+    direction: unidirectional(from = FileList, to = StatusBar)
+    strength:  flexible
+    on_break:  0x03A60x2193
+}
+
+-- ---------------------------------------------------------------------------
+-- SECTION 7: SEAMS
+-- ---------------------------------------------------------------------------
+
+seam FileSystemSeam between (FileList, NavigationBar) {
+    kind:    hard
+    passage: [directory_data, path_data]
+    filter:  none
+    failure: {
+        blocks: [blocked, lost]
+        passes: [degraded]
+        transforms: []
+    }
+}
+
+seam ClipboardSeam between (Toolbar, FileList) {
+    kind:    soft
+    passage: [clipboard_data, selection_data]
+    filter:  none
+    failure: {
+        blocks: [blocked]
+        passes: [degraded, partial]
+        transforms: []
+    }
+}
+
+seam ProgressSeam between (ProgressOverlay, FileList) {
+    kind:    soft
+    passage: [progress_data, operation_status]
+    filter:  none
+    failure: {
+        blocks: []
+        passes: [blocked, partial]
+        transforms: []
+    }
+}

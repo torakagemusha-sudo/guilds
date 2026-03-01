@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Primitives: The Invariant Foundation</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --accent-primary: #00d4ff;
+            --accent-secondary: #ff6b6b;
+            --accent-tertiary: #ffd93d;
+            --accent-quaternary: #6bcf7f;
+            --text-primary: #e8e8ef;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --border-subtle: #2a2a3a;
+            --border-active: #00d4ff;
+            --glow-primary: rgba(0, 212, 255, 0.3);
+            --glow-secondary: rgba(255, 107, 107, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated background grid */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.4;
+            background-image: 
+                linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .bg-grid::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 50% 50%, transparent 0%, var(--bg-primary) 100%);
+        }
+
+        /* Header */
+        header {
+            padding: 4rem 2rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-subtle);
+            position: relative;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 300;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1.5rem;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-subtle);
+            position: sticky;
+            top: 0;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
+        .nav-tab {
+            padding: 0.75rem 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .nav-tab:hover {
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+            transform: translateY(-2px);
+        }
+
+        .nav-tab.active {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px var(--glow-primary);
+        }
+
+        /* Main content */
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            font-size: 2rem;
+            font-weight: 300;
+            margin-bottom: 1rem;
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            font-weight: 500;
+            margin: 2rem 0 1rem;
+            color: var(--text-primary);
+            border-left: 3px solid var(--accent-primary);
+            padding-left: 1rem;
+        }
+
+        .intro-text {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin-bottom: 2rem;
+            line-height: 1.8;
+        }
+
+        /* Primitive Cards */
+        .primitive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .primitive-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .primitive-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .primitive-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-active);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .primitive-card:hover::before {
+            opacity: 1;
+        }
+
+        .primitive-symbol {
+            font-size: 2rem;
+            color: var(--accent-primary);
+            margin-bottom: 0.5rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .primitive-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .primitive-def {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .primitive-law {
+            background: var(--bg-tertiary);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: var(--accent-tertiary);
+            border-left: 2px solid var(--accent-tertiary);
+            font-style: italic;
+        }
+
+        /* Category colors */
+        .spatial .primitive-law { color: var(--accent-primary); border-color: var(--accent-primary); }
+        .structural .primitive-law { color: var(--accent-secondary); border-color: var(--accent-secondary); }
+        .temporal .primitive-law { color: var(--accent-tertiary); border-color: var(--accent-tertiary); }
+        .semantic .primitive-law { color: var(--accent-quaternary); border-color: var(--accent-quaternary); }
+        .behavioral .primitive-law { color: #c084fc; border-color: #c084fc; }
+        .cognitive .primitive-law { color: #f472b6; border-color: #f472b6; }
+
+        /* Laws Section */
+        .law-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+
+        .law-title {
+            font-size: 1.3rem;
+            color: var(--accent-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .law-content {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .law-formula {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            border-left: 3px solid var(--accent-primary);
+            overflow-x: auto;
+        }
+
+        /* Interactive Playground */
+        .playground {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .playground-canvas {
+            background: var(--bg-primary);
+            border: 2px dashed var(--border-subtle);
+            border-radius: 8px;
+            height: 400px;
+            position: relative;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .playground-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .control-btn {
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        .control-btn.active {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        /* Mapping Table */
+        .mapping-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            font-size: 0.95rem;
+        }
+
+        .mapping-table th {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            text-align: left;
+            color: var(--accent-primary);
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-subtle);
+        }
+
+        .mapping-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        .mapping-table tr:hover td {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* Checklist */
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+
+        .checklist li {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s;
+        }
+
+        .checklist li:hover {
+            border-color: var(--accent-primary);
+            transform: translateX(10px);
+        }
+
+        .check-box {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--text-muted);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .check-box:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .check-box.checked {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .check-box.checked::after {
+            content: '✓';
+            color: var(--bg-primary);
+            font-weight: bold;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .primitive-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-tabs {
+                gap: 0.25rem;
+            }
+            
+            .nav-tab {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-subtle);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-primary);
+        }
+
+        .highlight {
+            color: var(--accent-primary);
+            font-weight: 500;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin: 0.25rem;
+        }
+
+        .tag.spatial { color: var(--accent-primary); }
+        .tag.structural { color: var(--accent-secondary); }
+        .tag.temporal { color: var(--accent-tertiary); }
+        .tag.semantic { color: var(--accent-quaternary); }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    
+    <header>
+        <h1>Design Primitives</h1>
+        <p class="subtitle">The Invariant Foundation of GUI Layout — Atomic, Irreducible, Universal</p>
+    </header>
+
+    <nav class="nav-tabs">
+        <button class="nav-tab active" onclick="showSection('overview')">Overview</button>
+        <button class="nav-tab" onclick="showSection('spatial')">Spatial</button>
+        <button class="nav-tab" onclick="showSection('structural')">Structural</button>
+        <button class="nav-tab" onclick="showSection('temporal')">Temporal</button>
+        <button class="nav-tab" onclick="showSection('semantic')">Semantic</button>
+        <button class="nav-tab" onclick="showSection('behavioral')">Behavioral</button>
+        <button class="nav-tab" onclick="showSection('cognitive')">Cognitive</button>
+        <button class="nav-tab" onclick="showSection('laws')">Universal Laws</button>
+        <button class="nav-tab" onclick="showSection('mapping')">Pattern Mapping</button>
+        <button class="nav-tab" onclick="showSection('checklist')">Design Checklist</button>
+    </nav>
+
+    <main>
+        <!-- Overview Section -->
+        <section id="overview" class="section active">
+            <h2>⚡ The Foundation</h2>
+            <p class="intro-text">
+                All graphical user interfaces, from the first Alto to spatial computing, are composed of 
+                <span class="highlight">invariant primitives</span> — fundamental concepts that exist independent of 
+                technology, platform, or era. These are not trends or patterns, but the irreducible elements 
+                of human-computer interaction.
+            </p>
+            
+            <div class="law-container">
+                <div class="law-title">The Conservation of Complexity</div>
+                <div class="law-content">
+                    Complexity cannot be destroyed, only displaced. A simplified interface pushes complexity to 
+                    the backend, the user's mind, documentation, or training. Design is the conscious allocation 
+                    of this complexity.
+                </div>
+            </div>
+
+            <h3>The Six Primitive Categories</h3>
+            <div class="primitive-grid">
+                <div class="primitive-card spatial">
+                    <div class="primitive-symbol">□ · —</div>
+                    <div class="primitive-name">Spatial</div>
+                    <div class="primitive-def">Where things exist — containers, points, regions, layers</div>
+                    <div class="primitive-law">Space is always conserved</div>
+                </div>
+                <div class="primitive-card structural">
+                    <div class="primitive-symbol">→ ∥ ⊥</div>
+                    <div class="primitive-name">Structural</div>
+                    <div class="primitive-def">How things relate — hierarchy, sequence, orthogonality</div>
+                    <div class="primitive-law">Structure is always parseable</div>
+                </div>
+                <div class="primitive-card temporal">
+                    <div class="primitive-symbol">● ⇢ Δt</div>
+                    <div class="primitive-name">Temporal</div>
+                    <div class="primitive-def">How things change — states, transitions, triggers</div>
+                    <div class="primitive-law">Time has perception thresholds</div>
+                </div>
+                <div class="primitive-card semantic">
+                    <div class="primitive-symbol">↑ ⌖ ≈</div>
+                    <div class="primitive-name">Semantic</div>
+                    <div class="primitive-def">What things mean — affordances, mappings, metaphors</div>
+                    <div class="primitive-law">Meaning is constructed by the user</div>
+                </div>
+                <div class="primitive-card behavioral">
+                    <div class="primitive-symbol">▶ ⏼ ☑</div>
+                    <div class="primitive-name">Behavioral</div>
+                    <div class="primitive-def">How things act — activation, selection, navigation</div>
+                    <div class="primitive-law">Every action has feedback</div>
+                </div>
+                <div class="primitive-card cognitive">
+                    <div class="primitive-symbol">☉ WM ⬡</div>
+                    <div class="primitive-name">Cognitive</div>
+                    <div class="primitive-def">How minds process — attention, memory, chunking</div>
+                    <div class="primitive-law">Cognitive resources are strictly limited</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Spatial Section -->
+        <section id="spatial" class="section">
+            <h2>□ Spatial Primitives</h2>
+            <p class="intro-text">
+                The geometry of interface — where elements exist in two or three dimensions. 
+                These primitives govern physical arrangement and visual organization.
+            </p>
+            
+            <div class="primitive-grid">
+                <div class="primitive-card spatial">
+                    <div class="primitive-symbol">□</div>
+                    <div class="primitive-name">Container</div>
+                    <div class="primitive-def">Bounded region that holds content. The fundamental unit of organization.</div>
+                    <div class="primitive-law">Every element exists within a container; containers nest recursively</div>
+                </div>
+                <div class="primitive-card spatial">
+                    <div class="primitive-symbol">·</div>
+                    <div class="primitive-name">Point</div>
+                    <div class="primitive-def">Zero-dimensional location. The fundamental address in space.</div>
+                    <div class="primitive-law">All positioning resolves to points</div>
+                </div>
+                <div class="primitive-card spatial">
+                    <div class="primitive-symbol">—</div>
+                    <div class="primitive-name">Edge</div>
+                    <div class="primitive-def">One-dimensional boundary. Separates or connects regions.</div>
+                    <div class="primitive-law">Defines container limits; creates relationships</div>
+                </div>
+                <div class="primitive-card spatial">
+                    <div class="primitive-symbol">▨</div>
+                    <div class="primitive-name">Region</div>
+                    <div class="primitive-def">Two-dimensional area with extent (width × height).</div>
+                    <div class="primitive-law">Occupies space; has measurable bounds</div>
+                </div>
+                <div class="primitive-card spatial">
+                    <div class="primitive-symbol">=</div>
+                    <div class="primitive-name">Layer</div>
+                    <div class="primitive-def">Stacked depth dimension (z-axis). Creates visual hierarchy.</div>
+                    <div class="primitive-law">Higher obscures lower; requires ordering</div>
+                </div>
+                <div class="primitive-card spatial">
+                    <div class="primitive-symbol">#</div>
+                    <div class="primitive-name">Grid</div>
+                    <div class="primitive-def">Regular intersection of lines creating addressable cells.</div>
+                    <div class="primitive-law">Enforces rhythm; creates predictable addresses</div>
+                </div>
+                <div class="primitive-card spatial">
+                    <div class="primitive-symbol">~</div>
+                    <div class="primitive-name">Field</div>
+                    <div class="primitive-def">Continuous space without discrete cells. Supports free positioning.</div>
+                    <div class="primitive-law">Requires coordinate system; allows infinite precision</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Structural Section -->
+        <section id="structural" class="section">
+            <h2>→ Structural Primitives</h2>
+            <p class="intro-text">
+                The relationships between elements — how parts form wholes. 
+                Structure determines how users navigate and comprehend information architecture.
+            </p>
+            
+            <div class="primitive-grid">
+                <div class="primitive-card structural">
+                    <div class="primitive-symbol">→</div>
+                    <div class="primitive-name">Hierarchy</div>
+                    <div class="primitive-def">Parent-child relationship forming tree structures.</div>
+                    <div class="primitive-law">Every element (except root) has exactly one parent</div>
+                </div>
+                <div class="primitive-card structural">
+                    <div class="primitive-symbol">→→</div>
+                    <div class="primitive-name">Sequence</div>
+                    <div class="primitive-def">Ordered linear arrangement. A before B.</div>
+                    <div class="primitive-law">Irreversible without transformation; creates flow</div>
+                </div>
+                <div class="primitive-card structural">
+                    <div class="primitive-symbol">∥</div>
+                    <div class="primitive-name">Parallel</div>
+                    <div class="primitive-def">Simultaneous, non-interfering existence.</div>
+                    <div class="primitive-law">Independent but co-present; no causal link</div>
+                </div>
+                <div class="primitive-card structural">
+                    <div class="primitive-symbol">⊥</div>
+                    <div class="primitive-name">Orthogonality</div>
+                    <div class="primitive-def">Independence across dimensions.</div>
+                    <div class="primitive-law">Change in X does not affect Y (unless coupled)</div>
+                </div>
+                <div class="primitive-card structural">
+                    <div class="primitive-symbol">⊃</div>
+                    <div class="primitive-name">Containment</div>
+                    <div class="primitive-def">Complete enclosure within boundaries.</div>
+                    <div class="primitive-law">Child boundaries ≤ parent boundaries</div>
+                </div>
+                <div class="primitive-card structural">
+                    <div class="primitive-symbol">‖</div>
+                    <div class="primitive-name">Adjacency</div>
+                    <div class="primitive-def">Shared boundary without overlap.</div>
+                    <div class="primitive-law">Touching but distinct; order implies relationship</div>
+                </div>
+                <div class="primitive-card structural">
+                    <div class="primitive-symbol">∩</div>
+                    <div class="primitive-name">Intersection</div>
+                    <div class="primitive-def">Overlapping region creating new sub-space.</div>
+                    <div class="primitive-law">Creates new sub-region; requires z-order resolution</div>
+                </div>
+                <div class="primitive-card structural">
+                    <div class="primitive-symbol">…</div>
+                    <div class="primitive-name">Proximity</div>
+                    <div class="primitive-def">Relative nearness without contact. Gestalt grouping.</div>
+                    <div class="primitive-law">Implies grouping; inverse of distance</div>
+                </div>
+                <div class="primitive-card structural">
+                    <div class="primitive-symbol">|</div>
+                    <div class="primitive-name">Alignment</div>
+                    <div class="primitive-def">Shared coordinate on one or more axes.</div>
+                    <div class="primitive-law">Reduces visual entropy; creates order</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Temporal Section -->
+        <section id="temporal" class="section">
+            <h2>● Temporal Primitives</h2>
+            <p class="intro-text">
+                The dimension of change — how interfaces behave over time. 
+                Critical for feedback, animation, and state management.
+            </p>
+            
+            <div class="primitive-grid">
+                <div class="primitive-card temporal">
+                    <div class="primitive-symbol">●</div>
+                    <div class="primitive-name">State</div>
+                    <div class="primitive-def">Static condition at a specific moment in time.</div>
+                    <div class="primitive-law">Observable, describable, comparable</div>
+                </div>
+                <div class="primitive-card temporal">
+                    <div class="primitive-symbol">⇢</div>
+                    <div class="primitive-name">Transition</div>
+                    <div class="primitive-def">Movement between states over time.</div>
+                    <div class="primitive-law">Requires time; has curve (easing)</div>
+                </div>
+                <div class="primitive-card temporal">
+                    <div class="primitive-symbol">Δt</div>
+                    <div class="primitive-name">Duration</div>
+                    <div class="primitive-def">Extent of time for events or transitions.</div>
+                    <div class="primitive-law">Measured in ms; perceived as instant, fast, or slow</div>
+                </div>
+                <div class="primitive-card temporal">
+                    <div class="primitive-symbol">1→2→3</div>
+                    <div class="primitive-name">Sequence</div>
+                    <div class="primitive-def">Ordered temporal events. Causality or choreography.</div>
+                    <div class="primitive-law">Irreversible; creates narrative</div>
+                </div>
+                <div class="primitive-card temporal">
+                    <div class="primitive-symbol">⟳</div>
+                    <div class="primitive-name">Loop</div>
+                    <div class="primitive-def">Repeating temporal pattern.</div>
+                    <div class="primitive-law">Periodic; creates rhythm or annoyance</div>
+                </div>
+                <div class="primitive-card temporal">
+                    <div class="primitive-symbol">⚡</div>
+                    <div class="primitive-name">Trigger</div>
+                    <div class="primitive-def">Event initiating state change.</div>
+                    <div class="primitive-law">External (user) or internal (system); edge or level</div>
+                </div>
+                <div class="primitive-card temporal">
+                    <div class="primitive-symbol">⏱</div>
+                    <div class="primitive-name">Delay</div>
+                    <div class="primitive-def">Intentional temporal gap.</div>
+                    <div class="primitive-law">Creates anticipation or frustration</div>
+                </div>
+                <div class="primitive-card temporal">
+                    <div class="primitive-symbol">∞</div>
+                    <div class="primitive-name">Persistence</div>
+                    <div class="primitive-def">Continuation beyond immediate context.</div>
+                    <div class="primitive-law">Memory; state survives across sessions</div>
+                </div>
+            </div>
+
+            <div class="law-container">
+                <div class="law-title">⏱ The Latency Thresholds</div>
+                <div class="law-formula">
+0-100ms   : Instant, feels direct (perceptual fusion)<br>
+100-1000ms: Noticeable delay, still fluid (keep under 1s)<br>
+1-10s     : Mental context switch risk (provide progress)<br>
+>10s      : Abandonment threshold (require async handling)<br>
+>10m      : Task failure, session end (state preservation critical)
+                </div>
+            </div>
+        </section>
+
+        <!-- Semantic Section -->
+        <section id="semantic" class="section">
+            <h2>↑ Semantic Primitives</h2>
+            <p class="intro-text">
+                The layer of meaning — how users understand what interface elements do. 
+                Bridges physical form to intended function.
+            </p>
+            
+            <div class="primitive-grid">
+                <div class="primitive-card semantic">
+                    <div class="primitive-symbol">↑</div>
+                    <div class="primitive-name">Signifier</div>
+                    <div class="primitive-def">Perceivable cue indicating possible action.</div>
+                    <div class="primitive-law">Must be perceivable to be actionable</div>
+                </div>
+                <div class="primitive-card semantic">
+                    <div class="primitive-symbol">⌖</div>
+                    <div class="primitive-name">Affordance</div>
+                    <div class="primitive-def">Action possibility offered by object properties.</div>
+                    <div class="primitive-law">Exists independent of perception; designed or emergent</div>
+                </div>
+                <div class="primitive-card semantic">
+                    <div class="primitive-symbol">≈</div>
+                    <div class="primitive-name">Mapping</div>
+                    <div class="primitive-def">Relationship between control and effect.</div>
+                    <div class="primitive-law">Natural mapping reduces cognitive load</div>
+                </div>
+                <div class="primitive-card semantic">
+                    <div class="primitive-symbol">↻</div>
+                    <div class="primitive-name">Feedback</div>
+                    <div class="primitive-def">System response to user action.</div>
+                    <div class="primitive-law">Closes loop; confirms or denies</div>
+                </div>
+                <div class="primitive-card semantic">
+                    <div class="primitive-symbol">⊣</div>
+                    <div class="primitive-name">Constraint</div>
+                    <div class="primitive-def">Limitation on possible actions.</div>
+                    <div class="primitive-law">Physical, semantic, cultural, or logical</div>
+                </div>
+                <div class="primitive-card semantic">
+                    <div class="primitive-symbol">☙</div>
+                    <div class="primitive-name">Convention</div>
+                    <div class="primitive-def">Arbitrary but shared agreement.</div>
+                    <div class="primitive-law">Learned; varies by culture and context</div>
+                </div>
+                <div class="primitive-card semantic">
+                    <div class="primitive-symbol">≋</div>
+                    <div class="primitive-name">Metaphor</div>
+                    <div class="primitive-def">Borrowed meaning from known domain.</div>
+                    <div class="primitive-law">Bridges unknown to known; eventually dies</div>
+                </div>
+                <div class="primitive-card semantic">
+                    <div class="primitive-symbol">M</div>
+                    <div class="primitive-name">Mode</div>
+                    <div class="primitive-def">Mutually exclusive behavioral state.</div>
+                    <div class="primitive-law">Same input → different output; dangerous if invisible</div>
+                </div>
+                <div class="primitive-card semantic">
+                    <div class="primitive-symbol">👁</div>
+                    <div class="primitive-name">Visibility</div>
+                    <div class="primitive-def">Degree of perceptual access to system state.</div>
+                    <div class="primitive-law">Must be sufficient for task; not necessarily total</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Behavioral Section -->
+        <section id="behavioral" class="section">
+            <h2>▶ Behavioral Primitives</h2>
+            <p class="intro-text">
+                The vocabulary of interaction — what users can do and how systems respond. 
+                The atomic actions of interface operation.
+            </p>
+            
+            <div class="primitive-grid">
+                <div class="primitive-card behavioral">
+                    <div class="primitive-symbol">▶</div>
+                    <div class="primitive-name">Activation</div>
+                    <div class="primitive-def">Transition from idle to active state.</div>
+                    <div class="primitive-law">Requires energy/input; has threshold</div>
+                </div>
+                <div class="primitive-card behavioral">
+                    <div class="primitive-symbol">⏹</div>
+                    <div class="primitive-name">Deactivation</div>
+                    <div class="primitive-def">Return to idle state.</div>
+                    <div class="primitive-law">May be automatic (timeout) or manual</div>
+                </div>
+                <div class="primitive-card behavioral">
+                    <div class="primitive-symbol">⏼</div>
+                    <div class="primitive-name">Toggle</div>
+                    <div class="primitive-def">Binary state switch between two options.</div>
+                    <div class="primitive-law">Mutual exclusion; current state must be visible</div>
+                </div>
+                <div class="primitive-card behavioral">
+                    <div class="primitive-symbol">☑</div>
+                    <div class="primitive-name">Selection</div>
+                    <div class="primitive-def">Designation from set of options.</div>
+                    <div class="primitive-law">One, many, or zero; requires clear visual distinction</div>
+                </div>
+                <div class="primitive-card behavioral">
+                    <div class="primitive-symbol">⟿</div>
+                    <div class="primitive-name">Navigation</div>
+                    <div class="primitive-def">Movement between contexts or states.</div>
+                    <div class="primitive-law">Requires orientation cues; consumes cognitive resources</div>
+                </div>
+                <div class="primitive-card behavioral">
+                    <div class="primitive-symbol">✥</div>
+                    <div class="primitive-name">Manipulation</div>
+                    <div class="primitive-def">Direct modification of object properties.</div>
+                    <div class="primitive-law">Drag, resize, rotate; requires continuous feedback</div>
+                </div>
+                <div class="primitive-card behavioral">
+                    <div class="primitive-symbol">⌨</div>
+                    <div class="primitive-name">Input</div>
+                    <div class="primitive-def">User-to-system data flow.</div>
+                    <div class="primitive-law">Channel capacity limited; noise possible</div>
+                </div>
+                <div class="primitive-card behavioral">
+                    <div class="primitive-symbol">📺</div>
+                    <div class="primitive-name">Output</div>
+                    <div class="primitive-def">System-to-user data flow.</div>
+                    <div class="primitive-law">Must match human sensory bandwidth</div>
+                </div>
+                <div class="primitive-card behavioral">
+                    <div class="primitive-symbol">🔍</div>
+                    <div class="primitive-name">Search</div>
+                    <div class="primitive-def">Pattern matching within information space.</div>
+                    <div class="primitive-law">Requires query, index, or browsing strategy</div>
+                </div>
+                <div class="primitive-card behavioral">
+                    <div class="primitive-symbol">⛛</div>
+                    <div class="primitive-name">Filter</div>
+                    <div class="primitive-def">Subset selection by criteria.</div>
+                    <div class="primitive-law">Reduces set; may hide relevant items</div>
+                </div>
+                <div class="primitive-card behavioral">
+                    <div class="primitive-symbol">⇅</div>
+                    <div class="primitive-name">Sort</div>
+                    <div class="primitive-def">Ordering by attribute or rule.</div>
+                    <div class="primitive-law">Creates hierarchy; requires stable algorithm</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cognitive Section -->
+        <section id="cognitive" class="section">
+            <h2>☉ Cognitive Primitives</h2>
+            <p class="intro-text">
+                The human constraints — how minds process information. 
+                The bottleneck through which all interfaces must flow.
+            </p>
+            
+            <div class="primitive-grid">
+                <div class="primitive-card cognitive">
+                    <div class="primitive-symbol">☉</div>
+                    <div class="primitive-name">Attention</div>
+                    <div class="primitive-def">Limited resource of conscious focus.</div>
+                    <div class="primitive-law">Single-threaded; captured by salience</div>
+                </div>
+                <div class="primitive-card cognitive">
+                    <div class="primitive-symbol">WM</div>
+                    <div class="primitive-name">Working Memory</div>
+                    <div class="primitive-def">Temporary holding capacity (7±2 items).</div>
+                    <div class="primitive-law">Fragile; requires rehearsal or externalization</div>
+                </div>
+                <div class="primitive-card cognitive">
+                    <div class="primitive-symbol">⬡</div>
+                    <div class="primitive-name">Chunking</div>
+                    <div class="primitive-def">Grouping into meaningful units.</div>
+                    <div class="primitive-law">Expands effective capacity; requires pattern</div>
+                </div>
+                <div class="primitive-card cognitive">
+                    <div class="primitive-symbol">✓</div>
+                    <div class="primitive-name">Recognition</div>
+                    <div class="primitive-def">Identification of known pattern.</div>
+                    <div class="primitive-law">Easier than recall; requires prior exposure</div>
+                </div>
+                <div class="primitive-card cognitive">
+                    <div class="primitive-symbol">?</div>
+                    <div class="primitive-name">Recall</div>
+                    <div class="primitive-def">Retrieval without external cue.</div>
+                    <div class="primitive-law">Harder than recognition; requires cues</div>
+                </div>
+                <div class="primitive-card cognitive">
+                    <div class="primitive-symbol">🧠</div>
+                    <div class="primitive-name">Mental Model</div>
+                    <div class="primitive-def">Internal representation of system.</div>
+                    <div class="primitive-law">Simplified; updated by feedback; may be wrong</div>
+                </div>
+                <div class="primitive-card cognitive">
+                    <div class="primitive-symbol">⚡</div>
+                    <div class="primitive-name">Cognitive Load</div>
+                    <div class="primitive-def">Working memory utilization.</div>
+                    <div class="primitive-law">Intrinsic + extraneous + germane; minimize extraneous</div>
+                </div>
+                <div class="primitive-card cognitive">
+                    <div class="primitive-symbol">↘</div>
+                    <div class="primitive-name">Habituation</div>
+                    <div class="primitive-def">Decreased response to repeated stimulus.</div>
+                    <div class="primitive-law">Notifications die; animations become invisible</div>
+                </div>
+                <div class="primitive-card cognitive">
+                    <div class="primitive-symbol">☺</div>
+                    <div class="primitive-name">Satisfaction</div>
+                    <div class="primitive-def">Positive affect from goal achievement.</div>
+                    <div class="primitive-law">Requires clear goals, progress indication, success</div>
+                </div>
+                <div class="primitive-card cognitive">
+                    <div class="primitive-symbol">😤</div>
+                    <div class="primitive-name">Frustration</div>
+                    <div class="primitive-def">Negative affect from blocked goals.</div>
+                    <div class="primitive-law">Violation of expectation; recoverable or catastrophic</div>
+                </div>
+            </div>
+
+            <div class="law-container">
+                <div class="law-title">🧠 The Perceptual Hierarchy</div>
+                <div class="law-content">
+                    Users perceive in this order, regardless of designer intent:
+                </div>
+                <div class="law-formula">
+1. Motion (change over time) — fastest detection<br>
+2. Color (hue, saturation, value) — emotional impact<br>
+3. Contrast (figure/ground) — boundary detection<br>
+4. Size (relative scale) — importance signaling<br>
+5. Position (spatial relationship) — structure parsing<br>
+6. Typography (symbolic content) — slowest, requires literacy
+                </div>
+            </div>
+        </section>
+
+        <!-- Laws Section -->
+        <section id="laws" class="section">
+            <h2>⚖️ Universal Laws</h2>
+            <p class="intro-text">
+                The immutable constraints governing all interface design. 
+                Violate these at your peril — they are backed by physics, physiology, and psychology.
+            </p>
+
+            <div class="law-container">
+                <div class="law-title">1. Law of Composition</div>
+                <div class="law-formula">
+Primitives compose but do not blend.<br>
+Container + Hierarchy = Nested containment<br>
+Transition + Feedback = Confident interaction<br>
+Metaphor + Convention = Cultural interface
+                </div>
+                <div class="law-content">
+                    Complex behaviors emerge from primitive combinations, but each primitive maintains 
+                    its distinct properties. A container within a hierarchy is still a container first.
+                </div>
+            </div>
+
+            <div class="law-container">
+                <div class="law-title">2. Law of Conservation</div>
+                <div class="law-formula">
+Complexity cannot be destroyed, only displaced.<br>
+<br>
+L_interface + L_backend + L_user + L_docs = Constant<br>
+<br>
+Where L = cognitive load
+                </div>
+                <div class="law-content">
+                    A simplified interface pushes complexity elsewhere: to the backend (computation), 
+                    the user's mind (mental models), documentation (external memory), or training (prior knowledge).
+                </div>
+            </div>
+
+            <div class="law-container">
+                <div class="law-title">3. Law of Mode Danger</div>
+                <div class="law-formula">
+N binary modes → 2^N possible states<br>
+User must track: current mode + available transitions<br>
+<br>
+Invisible modes → mode errors (the "oops" factor)
+                </div>
+                <div class="law-content">
+                    Modes multiply state space exponentially. The user must maintain awareness of 
+                    current mode and available transitions. Invisible modes cause mode errors — 
+                    performing the right action in the wrong mode.
+                </div>
+            </div>
+
+            <div class="law-container">
+                <div class="law-title">4. Law of Feedback</div>
+                <div class="law-formula">
+Action + Feedback = Control<br>
+Action − Feedback = Anxiety<br>
+<br>
+Feedback must be: Immediate (<100ms), Informative, Consistent
+                </div>
+                <div class="law-content">
+                    Every action requires an equal and opposite reaction. Without feedback, users 
+                    cannot confirm their action registered, leading to repeated inputs or abandonment.
+                </div>
+            </div>
+
+            <div class="law-container">
+                <div class="law-title">5. Law of Hierarchy Parsing</div>
+                <div class="law-content">
+                    Users unconsciously construct mental models from structural primitives. 
+                    Ambiguous hierarchy creates parse errors — the user cannot determine relationships 
+                    and thus cannot predict behavior.
+                </div>
+            </div>
+
+            <div class="law-container">
+                <div class="law-title">6. Design as Constraint Satisfaction</div>
+                <div class="law-formula">
+Given:<br>
+  P = Set of primitives<br>
+  C = Constraints (user, business, technical)<br>
+  G = Goals (usability, delight, efficiency)<br>
+<br>
+Find: Layout L ⊆ P such that ∀c ∈ C: satisfies(L, c) ∧ optimizes(L, G)<br>
+<br>
+Subject to:<br>
+  Cognitive Load ≤ Working Memory Capacity<br>
+  Feedback Latency ≤ Attention Threshold<br>
+  Mode Count ≤ Mental Model Complexity Limit
+                </div>
+            </div>
+        </section>
+
+        <!-- Mapping Section -->
+        <section id="mapping" class="section">
+            <h2>🗺️ Pattern Mapping</h2>
+            <p class="intro-text">
+                How high-level layout patterns decompose into primitive compositions. 
+                Standard, Rare, Bad, and Ultimate layouts as primitive combinations.
+            </p>
+
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>Layout Pattern</th>
+                        <th>Primitive Composition</th>
+                        <th>Category</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Single Column</td>
+                        <td>
+                            <span class="tag spatial">Container</span>
+                            <span class="tag structural">Sequence</span>
+                            <span class="tag structural">Alignment</span>
+                        </td>
+                        <td>Standard</td>
+                    </tr>
+                    <tr>
+                        <td>Grid System</td>
+                        <td>
+                            <span class="tag spatial">Grid</span>
+                            <span class="tag structural">Hierarchy</span>
+                            <span class="tag structural">Proximity</span>
+                        </td>
+                        <td>Standard</td>
+                    </tr>
+                    <tr>
+                        <td>Card Layout</td>
+                        <td>
+                            <span class="tag spatial">Container</span>
+                            <span class="tag spatial">Region</span>
+                            <span class="tag spatial">Layer</span>
+                            <span class="tag structural">Proximity</span>
+                        </td>
+                        <td>Standard</td>
+                    </tr>
+                    <tr>
+                        <td>Split Screen</td>
+                        <td>
+                            <span class="tag spatial">Container</span>
+                            <span class="tag structural">Parallel</span>
+                            <span class="tag structural">Orthogonality</span>
+                        </td>
+                        <td>Standard</td>
+                    </tr>
+                    <tr>
+                        <td>Bento Grid</td>
+                        <td>
+                            <span class="tag spatial">Grid</span>
+                            <span class="tag spatial">Region</span>
+                            <span class="tag structural">Proximity</span>
+                        </td>
+                        <td>Rare</td>
+                    </tr>
+                    <tr>
+                        <td>Radial Menu</td>
+                        <td>
+                            <span class="tag spatial">Field</span>
+                            <span class="tag structural">Proximity</span>
+                            <span class="tag behavioral">Selection</span>
+                        </td>
+                        <td>Rare</td>
+                    </tr>
+                    <tr>
+                        <td>Command Palette</td>
+                        <td>
+                            <span class="tag spatial">Layer</span>
+                            <span class="tag behavioral">Input</span>
+                            <span class="tag behavioral">Search</span>
+                            <span class="tag temporal">Trigger</span>
+                        </td>
+                        <td>Rare</td>
+                    </tr>
+                    <tr>
+                        <td>Mystery Meat Navigation</td>
+                        <td>
+                            <span class="tag spatial">Container</span>
+                            <span class="tag semantic">−Signifier</span>
+                            <span class="tag cognitive">Frustration</span>
+                        </td>
+                        <td>Bad</td>
+                    </tr>
+                    <tr>
+                        <td>Modal Madness</td>
+                        <td>
+                            <span class="tag spatial">Layer</span>
+                            <span class="tag semantic">Mode</span>
+                            <span class="tag cognitive">Cognitive Load↑</span>
+                        </td>
+                        <td>Bad</td>
+                    </tr>
+                    <tr>
+                        <td>Infinite Scroll + Footer</td>
+                        <td>
+                            <span class="tag structural">Sequence</span>
+                            <span class="tag temporal">Loop</span>
+                            <span class="tag temporal">Persistence</span>
+                            <span class="tag semantic">Constraint</span>
+                        </td>
+                        <td>Bad</td>
+                    </tr>
+                    <tr>
+                        <td>Spatial/VR Interface</td>
+                        <td>
+                            <span class="tag spatial">Field</span>
+                            <span class="tag spatial">Layer</span>
+                            <span class="tag behavioral">Navigation</span>
+                        </td>
+                        <td>Ultimate</td>
+                    </tr>
+                    <tr>
+                        <td>Voice First</td>
+                        <td>
+                            <span class="tag behavioral">Input</span>
+                            <span class="tag cognitive">Recognition</span>
+                            <span class="tag semantic">−Visibility</span>
+                        </td>
+                        <td>Ultimate</td>
+                    </tr>
+                    <tr>
+                        <td>Generative Layout</td>
+                        <td>
+                            <span class="tag structural">Hierarchy</span>
+                            <span class="tag temporal">State</span>
+                            <span class="tag cognitive">Mental Model</span>
+                        </td>
+                        <td>Ultimate</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="law-container" style="margin-top: 2rem;">
+                <div class="law-title">Composition Rules</div>
+                <div class="law-content">
+                    <strong>Valid Composition:</strong> Primitives combine if they share a dimension 
+                    (Spatial + Structural = Layout) or form a causal chain (Trigger → Transition → State).<br><br>
+                    <strong>Invalid Composition:</strong> Primitives conflict if they violate conservation 
+                    (Infinite Container + Finite Space) or create ambiguity (Parallel + Sequence for same elements).
+                </div>
+            </div>
+        </section>
+
+        <!-- Checklist Section -->
+        <section id="checklist" class="section">
+            <h2>✓ The Irreducible Checklist</h2>
+            <p class="intro-text">
+                Every GUI layout, regardless of complexity, must resolve these six dimensions. 
+                Failure at any primitive level propagates upward — a layout cannot succeed if 
+                its temporal transitions violate attention limits, regardless of spatial elegance.
+            </p>
+
+            <ul class="checklist">
+                <li onclick="toggleCheck(this)">
+                    <div class="check-box"></div>
+                    <div>
+                        <strong>Space</strong> — Where does each element exist?
+                        <br><span style="color: var(--text-muted); font-size: 0.9rem;">
+                            Containers defined, regions bounded, layers ordered
+                        </span>
+                    </div>
+                </li>
+                <li onclick="toggleCheck(this)">
+                    <div class="check-box"></div>
+                    <div>
+                        <strong>Structure</strong> — How do elements relate?
+                        <br><span style="color: var(--text-muted); font-size: 0.9rem;">
+                            Hierarchy parseable, sequence logical, proximity meaningful
+                        </span>
+                    </div>
+                </li>
+                <li onclick="toggleCheck(this)">
+                    <div class="check-box"></div>
+                    <div>
+                        <strong>Time</strong> — How do elements change?
+                        <br><span style="color: var(--text-muted); font-size: 0.9rem;">
+                            States defined, transitions smooth, feedback within 100ms
+                        </span>
+                    </div>
+                </li>
+                <li onclick="toggleCheck(this)">
+                    <div class="check-box"></div>
+                    <div>
+                        <strong>Meaning</strong> — What do elements signify?
+                        <br><span style="color: var(--text-muted); font-size: 0.9rem;">
+                            Signifiers visible, affordances clear, mappings natural
+                        </span>
+                    </div>
+                </li>
+                <li onclick="toggleCheck(this)">
+                    <div class="check-box"></div>
+                    <div>
+                        <strong>Action</strong> — How do elements behave?
+                        <br><span style="color: var(--text-muted); font-size: 0.9rem;">
+                            Activation clear, selection unambiguous, navigation orienting
+                        </span>
+                    </div>
+                </li>
+                <li onclick="toggleCheck(this)">
+                    <div class="check-box"></div>
+                    <div>
+                        <strong>Mind</strong> — How do users process?
+                        <br><span style="color: var(--text-muted); font-size: 0.9rem;">
+                            Load minimized, chunking supported, recognition > recall
+                        </span>
+                    </div>
+                </li>
+            </ul>
+
+            <div class="law-container" style="margin-top: 2rem;">
+                <div class="law-title">Validation Criteria</div>
+                <div class="law-content">
+                    A layout is <strong>valid</strong> when all six dimensions are addressed.<br>
+                    A layout is <strong>successful</strong> when all six dimensions are optimized.<br>
+                    A layout is <strong>innovative</strong> when it discovers new primitive combinations 
+                    without violating invariant laws.
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        function toggleCheck(element) {
+            const checkbox = element.querySelector('.check-box');
+            checkbox.classList.toggle('checked');
+        }
+
+        // Add smooth scrolling for any anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
