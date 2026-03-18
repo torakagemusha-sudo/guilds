@@ -5,3 +5,4 @@ assets/
 claude.md
 guilds.exe
 outputs/*
+*.egg-info/
