@@ -5,4 +5,7 @@ assets/
 claude.md
 guilds.exe
 outputs/*
-*.egg-info/
+*.egg-info/-e 
+# Environment files
+*.env
+*.env.*
