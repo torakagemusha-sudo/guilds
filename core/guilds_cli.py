@@ -50,7 +50,18 @@ sys.path.insert(0, str(REPO_ROOT))
 
 try:
     from guilds_parser import parse_source, LexError, ParseError
-    from guilds_evaluator import Evaluator, EvalContext, ALL_PHASES, PHASE_NAMES
+    from guilds_evaluator import (
+        Evaluator,
+        EvalContext,
+        ALL_PHASES,
+        PHASE_NAMES,
+        PHASE_ORIENT,
+        PHASE_EXECUTE,
+        PHASE_VERIFY,
+        PHASE_INTEGRATE,
+        PHASE_RECOVER,
+        PHASE_IDLE,
+    )
     from guilds_live_builder import build_bundle, build_html
 except ImportError as e:
     print(f"Error importing GUILDS modules: {e}")
@@ -68,6 +79,20 @@ AVAILABLE_BACKENDS = [
     'cpp-qt',      # C++ Qt application
     'cpp-imgui',   # C++ Dear ImGui application
 ]
+
+PHASE_NAME_TO_CONST = {
+    "orient": PHASE_ORIENT,
+    "execute": PHASE_EXECUTE,
+    "verify": PHASE_VERIFY,
+    "integrate": PHASE_INTEGRATE,
+    "recover": PHASE_RECOVER,
+    "idle": PHASE_IDLE,
+}
+
+
+def _phase_to_const(phase_name: str, default: str = "execute") -> str:
+    """Map human phase names to evaluator constants."""
+    return PHASE_NAME_TO_CONST.get(phase_name, PHASE_NAME_TO_CONST[default])
 
 
 def _collect_declarations(program):
@@ -352,12 +377,7 @@ def cmd_render(args):
             print(f"FATAL: {e}")
             return 2
 
-        phase_map = {
-            "orient": "0x03C60x2080", "execute": "0x03C60x2081",
-            "verify": "0x03C60x2082", "integrate": "0x03C60x2083",
-            "recover": "0x03C60x1D63", "idle": "0x03C60x2205",
-        }
-        ctx = EvalContext(phase=phase_map.get(phase, phase_map["execute"]), now=time.time())
+        ctx = EvalContext(phase=_phase_to_const(phase, default="execute"), now=time.time())
         ev = Evaluator(program, ctx)
         model = ev.evaluate()
 
@@ -394,13 +414,7 @@ def build_with_backend(spec_path: str, backend: str, output: str = None, phase: 
         print(f"FATAL: {e}")
         return 2
 
-    # Map phase name to phase constant
-    phase_map = {
-        "orient": "0x03C60x2080", "execute": "0x03C60x2081",
-        "verify": "0x03C60x2082", "integrate": "0x03C60x2083",
-        "recover": "0x03C60x1D63", "idle": "0x03C60x2205",
-    }
-    phase_const = phase_map.get(phase, phase_map["execute"])
+    phase_const = _phase_to_const(phase, default="execute")
 
     ctx = EvalContext(phase=phase_const, now=time.time())
     ev = Evaluator(program, ctx)
@@ -1100,8 +1114,8 @@ def cmd_compile(args):
             print(f"  - {e}")
         return 1
 
-    # Evaluate for idle phase
-    ctx = EvalContext(phase="idle", now=time.time())
+    # Evaluate using evaluator phase constants (string names bypass stage phase configs).
+    ctx = EvalContext(phase=_phase_to_const("idle", default="idle"), now=time.time())
     evaluator = Evaluator(program, ctx)
     surface = evaluator.evaluate()
 
