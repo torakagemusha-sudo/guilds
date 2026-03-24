@@ -16,6 +16,7 @@ pdf-gui = ["reportlab>=4.2", "kivy>=2.3"]
 
 [project.scripts]
 guilds = "core.guilds_cli:main"
+tf_docs = "core.scripts.tf_docs:main"
 
 [tool.setuptools.packages.find]
 where = [".."]
