@@ -423,21 +423,22 @@ class ExpressionCompiler:
         code = self._generate_code(expr)
         
         # Create function
-        namespace = {'__builtins__': __builtins__, 'ctx': context}
+        # Restrict builtins while evaluating generated expressions.
+        namespace = {'__builtins__': {}, 'ctx': context}
         exec(f"def _compiled_expr():\n    return {code}", namespace)
         
         return namespace['_compiled_expr']
     
     def _generate_code(self, expr: Any) -> str:
         """Generate Python code for expression"""
+        if isinstance(expr, bool):
+            return repr(expr)
+
         if isinstance(expr, (int, float)):
-            return str(expr)
+            return repr(expr)
         
         if isinstance(expr, str):
-            return f"'{expr}'"
-        
-        if isinstance(expr, bool):
-            return str(expr)
+            return repr(expr)
         
         if isinstance(expr, BinaryExpr):
             left = self._generate_code(expr.left)
@@ -445,12 +446,23 @@ class ExpressionCompiler:
             
             # Map operators
             op_map = {
+                '+': '+',
+                '-': '-',
+                '*': '*',
+                '/': '/',
+                '%': '%',
+                '<': '<',
+                '>': '>',
+                '<=': '<=',
+                '>=': '>=',
                 '&&': 'and',
                 '||': 'or',
                 '==': '==',
                 '!=': '!=',
             }
-            op = op_map.get(expr.operator, expr.operator)
+            op = op_map.get(expr.operator)
+            if op is None:
+                raise ValueError(f"Unsupported binary operator: {expr.operator}")
             
             return f"({left} {op} {right})"
         
@@ -459,8 +471,9 @@ class ExpressionCompiler:
             
             if expr.operator == '!':
                 return f"(not {operand})"
-            else:
+            if expr.operator == '-':
                 return f"({expr.operator}{operand})"
+            raise ValueError(f"Unsupported unary operator: {expr.operator}")
         
         if isinstance(expr, ConditionalExpr):
             cond = self._generate_code(expr.condition)
@@ -470,8 +483,10 @@ class ExpressionCompiler:
             return f"({true_val} if {cond} else {false_val})"
         
         if isinstance(expr, FunctionCallExpr):
+            if not isinstance(expr.func_name, str):
+                raise TypeError("Function name must be a string")
             args = ', '.join(self._generate_code(arg) for arg in expr.arguments)
-            return f"ctx.call_function('{expr.func_name}', [{args}])"
+            return f"ctx.call_function({repr(expr.func_name)}, [{args}])"
         
         return "None"
 
