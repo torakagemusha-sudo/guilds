@@ -148,6 +148,16 @@ BEGIN
     WHERE effect_id = OLD.effect_id;
 END;
 
+CREATE TRIGGER IF NOT EXISTS trg_schema_migrations_set_updated_at
+AFTER UPDATE ON schema_migrations
+FOR EACH ROW
+WHEN NEW.updated_at = OLD.updated_at
+BEGIN
+    UPDATE schema_migrations
+    SET updated_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE name = OLD.name;
+END;
+
 CREATE TRIGGER IF NOT EXISTS trg_audit_log_prevent_update
 BEFORE UPDATE ON audit_log
 FOR EACH ROW

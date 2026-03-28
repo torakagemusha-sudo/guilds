@@ -45,7 +45,7 @@ export async function runMigrations(
   options: RunMigrationsOptions = {},
 ): Promise<MigrationResult[]> {
   const tableName = options.tableName ?? DEFAULT_TABLE_NAME;
-  const migrationsDir = resolve(options.migrationsDir ?? join(process.cwd(), "d1", "migrations"));
+  const migrationsDir = resolve(options.migrationsDir ?? join(process.cwd(), "migrations"));
   const migrationFiles = listMigrationFiles(migrationsDir);
   const results: MigrationResult[] = [];
 
@@ -93,4 +93,3 @@ export async function runMigrations(
 
   return results;
 }
-
