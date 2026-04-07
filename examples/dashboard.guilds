@@ -15,7 +15,7 @@
 
 claim TotalUsersClaim {
     content:     numeric(total_users)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(database)
     stakes:      high
     freshness:   polled(interval = m(5))
@@ -24,7 +24,7 @@ claim TotalUsersClaim {
 
 claim ActiveUsersClaim {
     content:     numeric(active_users_24h)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(analytics_api)
     stakes:      high
     freshness:   polled(interval = m(1))
@@ -33,7 +33,7 @@ claim ActiveUsersClaim {
 
 claim RevenueClaim {
     content:     numeric(total_revenue)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(billing_system)
     stakes:      high
     freshness:   polled(interval = m(15))
@@ -42,7 +42,7 @@ claim RevenueClaim {
 
 claim ConversionRateClaim {
     content:     numeric(conversion_percentage)
-    certainty:   0x03C4~
+    certainty:   inferred
     provenance:  source.derived(signups_and_trials, method = ratio_calculation)
     stakes:      medium
     freshness:   polled(interval = m(5))
@@ -51,7 +51,7 @@ claim ConversionRateClaim {
 
 claim ChurnRateClaim {
     content:     numeric(churn_percentage)
-    certainty:   0x03C4~
+    certainty:   inferred
     provenance:  source.derived(cancellations_and_active, method = ratio_calculation)
     stakes:      high
     freshness:   polled(interval = h(1))
@@ -60,7 +60,7 @@ claim ChurnRateClaim {
 
 claim ErrorRateClaim {
     content:     numeric(error_percentage)
-    certainty:   0x03C4?
+    certainty:   probable
     provenance:  source.derived(error_logs, method = sampling)
     stakes:      high
     freshness:   polled(interval = m(1))
@@ -69,7 +69,7 @@ claim ErrorRateClaim {
 
 claim LatencyClaim {
     content:     numeric(p99_latency_ms)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(monitoring_system)
     stakes:      high
     freshness:   live
@@ -78,7 +78,7 @@ claim LatencyClaim {
 
 claim UptimeClaim {
     content:     numeric(uptime_percentage)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(health_check)
     stakes:      high
     freshness:   polled(interval = s(30))
@@ -91,7 +91,7 @@ claim UptimeClaim {
 
 claim UserGrowthChartClaim {
     content:     chart(user_growth_timeseries)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(analytics_api)
     stakes:      medium
     freshness:   polled(interval = h(1))
@@ -100,7 +100,7 @@ claim UserGrowthChartClaim {
 
 claim RevenueChartClaim {
     content:     chart(revenue_timeseries)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(billing_system)
     stakes:      high
     freshness:   polled(interval = h(1))
@@ -109,7 +109,7 @@ claim RevenueChartClaim {
 
 claim TrafficChartClaim {
     content:     chart(traffic_timeseries)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(analytics_api)
     stakes:      medium
     freshness:   polled(interval = m(5))
@@ -118,7 +118,7 @@ claim TrafficChartClaim {
 
 claim ErrorChartClaim {
     content:     chart(error_distribution)
-    certainty:   0x03C4?
+    certainty:   probable
     provenance:  source.derived(error_logs, method = aggregation)
     stakes:      high
     freshness:   polled(interval = m(5))
@@ -127,7 +127,7 @@ claim ErrorChartClaim {
 
 claim GeoDistributionClaim {
     content:     chart(geographic_distribution)
-    certainty:   0x03C4~
+    certainty:   inferred
     provenance:  source.derived(ip_addresses, method = geolocation)
     stakes:      low
     freshness:   polled(interval = h(1))
@@ -140,7 +140,7 @@ claim GeoDistributionClaim {
 
 claim LastRefreshClaim {
     content:     text(last_refresh_time)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(system)
     stakes:      low
     freshness:   event_driven(refresh_complete)
@@ -149,7 +149,7 @@ claim LastRefreshClaim {
 
 claim DataSourceStatusClaim {
     content:     status(data_source_health)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(health_check)
     stakes:      high
     freshness:   polled(interval = s(30))
@@ -158,7 +158,7 @@ claim DataSourceStatusClaim {
 
 claim DateRangeClaim {
     content:     text(selected_date_range)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(user_selection)
     stakes:      medium
     freshness:   event_driven(range_change)
@@ -167,7 +167,7 @@ claim DateRangeClaim {
 
 claim ExportProgressClaim {
     content:     numeric(export_percentage)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(export_job)
     stakes:      medium
     freshness:   live
@@ -176,7 +176,7 @@ claim ExportProgressClaim {
 
 claim AlertClaim {
     content:     text(alert_message)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(alerting_system)
     stakes:      high
     freshness:   event_driven(alert_triggered)
@@ -185,7 +185,7 @@ claim AlertClaim {
 
 claim ConnectionErrorClaim {
     content:     text(connection_error_message)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(api_client)
     stakes:      high
     freshness:   event_driven(connection_error)
@@ -194,7 +194,7 @@ claim ConnectionErrorClaim {
 
 claim StaleDataWarningClaim {
     content:     text(stale_data_warning)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(system)
     stakes:      medium
     freshness:   event_driven(staleness_detected)
@@ -214,13 +214,13 @@ afford RefreshAfford {
             trigger:     user_action(RefreshAfford)
             obligation:  execute(refresh_all_data)
             deadline:    s(30)
-            on_breach:   0x03A60x00BD
+            on_breach:   partial
         }
         contract RefreshAck {
             trigger:     user_action(RefreshAfford)
             obligation:  acknowledge
             deadline:    ms(100)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -235,13 +235,13 @@ afford DateRangeAfford {
             trigger:     user_action(DateRangeAfford)
             obligation:  execute(update_date_range)
             deadline:    ms(100)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
         contract ReloadData {
             trigger:     user_action(DateRangeAfford)
             obligation:  execute(reload_with_range)
             deadline:    s(10)
-            on_breach:   0x03A60x00BD
+            on_breach:   partial
         }
     ]
     on_unavail:   fade_locked
@@ -256,13 +256,13 @@ afford ExportAfford {
             trigger:     user_action(ExportAfford)
             obligation:  execute(export_to_format)
             deadline:    s(60)
-            on_breach:   0x03A60x22A3
+            on_breach:   blocked
         }
         contract ExportProgress {
             trigger:     user_action(ExportAfford)
             obligation:  display(ExportProgressClaim)
             deadline:    ms(500)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -277,7 +277,7 @@ afford FilterAfford {
             trigger:     user_action(FilterAfford)
             obligation:  execute(filter_data)
             deadline:    s(5)
-            on_breach:   0x03A60x00BD
+            on_breach:   partial
         }
     ]
     on_unavail:   hidden
@@ -292,7 +292,7 @@ afford ConfigureWidgetAfford {
             trigger:     user_action(ConfigureWidgetAfford)
             obligation:  navigate(widget_config)
             deadline:    ms(200)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   hidden
@@ -307,7 +307,7 @@ afford DismissAlertAfford {
             trigger:     user_action(DismissAlertAfford)
             obligation:  execute(dismiss_alert)
             deadline:    ms(100)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   hidden
@@ -322,7 +322,7 @@ afford FullscreenChartAfford {
             trigger:     user_action(FullscreenChartAfford)
             obligation:  navigate(fullscreen_chart)
             deadline:    ms(200)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   hidden
@@ -337,7 +337,7 @@ afford DrillDownAfford {
             trigger:     user_action(DrillDownAfford)
             obligation:  navigate(metric_detail)
             deadline:    s(5)
-            on_breach:   0x03A60x22A3
+            on_breach:   blocked
         }
     ]
     on_unavail:   hidden
@@ -352,7 +352,7 @@ afford RetryConnectionAfford {
             trigger:     user_action(RetryConnectionAfford)
             obligation:  execute(reconnect_datasource)
             deadline:    s(10)
-            on_breach:   0x03A60x22A3
+            on_breach:   blocked
         }
     ]
     on_unavail:   hidden
@@ -379,12 +379,12 @@ vessel MetricsRow {
     failures: [
         FailureSpec {
             trigger:   api_timeout
-            surfaces:  0x03A60x231B
+            surfaces:  stale
             propagates: conditional
         }
         FailureSpec {
             trigger:   api_error
-            surfaces:  0x03A60x2193
+            surfaces:  degraded
             propagates: no
         }
     ]
@@ -392,14 +392,14 @@ vessel MetricsRow {
 
 vessel UserGrowthCard {
     budget:      shared(0.25, chart_count)
-    phase:       [0x03C60x2205, 0x03C60x2081]
+    phase:       [idle, execute]
     weight:      primary
     arrangement: sequence(primary, [1.0])
     contains:    [UserGrowthChartClaim, FullscreenChartAfford, DrillDownAfford]
     failures: [
         FailureSpec {
             trigger:   chart_render_error
-            surfaces:  0x03A60x00BD
+            surfaces:  partial
             propagates: no
         }
     ]
@@ -407,7 +407,7 @@ vessel UserGrowthCard {
 
 vessel RevenueCard {
     budget:      shared(0.25, chart_count)
-    phase:       [0x03C60x2205, 0x03C60x2081]
+    phase:       [idle, execute]
     weight:      primary
     arrangement: sequence(primary, [1.0])
     contains:    [RevenueChartClaim, FullscreenChartAfford, DrillDownAfford]
@@ -415,7 +415,7 @@ vessel RevenueCard {
 
 vessel TrafficCard {
     budget:      shared(0.25, chart_count)
-    phase:       [0x03C60x2205, 0x03C60x2081]
+    phase:       [idle, execute]
     weight:      secondary
     arrangement: sequence(primary, [1.0])
     contains:    [TrafficChartClaim, FullscreenChartAfford]
@@ -423,14 +423,14 @@ vessel TrafficCard {
 
 vessel ErrorCard {
     budget:      shared(0.25, chart_count)
-    phase:       [0x03C60x2205, 0x03C60x2081, 0x03C60x1D63]
+    phase:       [idle, execute, recover]
     weight:      secondary
     arrangement: sequence(primary, [1.0])
     contains:    [ErrorChartClaim, ErrorRateClaim, FullscreenChartAfford]
     failures: [
         FailureSpec {
             trigger:   high_error_rate
-            surfaces:  0x03A60x2192
+            surfaces:  cascade
             propagates: yes
         }
     ]
@@ -438,7 +438,7 @@ vessel ErrorCard {
 
 vessel GeoCard {
     budget:      shared(0.25, chart_count)
-    phase:       0x03C60x2080
+    phase:       orient
     weight:      secondary
     arrangement: sequence(primary, [1.0])
     contains:    [GeoDistributionClaim, FullscreenChartAfford]
@@ -446,7 +446,7 @@ vessel GeoCard {
 
 vessel ChartsGrid {
     budget:      whole(0.60)
-    phase:       [0x03C60x2205, 0x03C60x2081]
+    phase:       [idle, execute]
     weight:      primary
     arrangement: grid(columns = 2, gap = 16px)
     contains:    [UserGrowthCard, RevenueCard, TrafficCard, ErrorCard]
@@ -454,7 +454,7 @@ vessel ChartsGrid {
 
 vessel FilterPanel {
     budget:      whole(0.20)
-    phase:       0x03C60x2080
+    phase:       orient
     weight:      secondary
     arrangement: sequence(cross, [0.5, 0.5])
     contains:    [FilterAfford, ConfigureWidgetAfford]
@@ -469,7 +469,7 @@ vessel StatusBar {
     failures: [
         FailureSpec {
             trigger:   datasource_down
-            surfaces:  0x03A60x2205
+            surfaces:  lost
             propagates: yes
         }
     ]
@@ -493,7 +493,7 @@ vessel StaleWarningBanner {
 
 vessel ExportProgress {
     budget:      whole(0.10)
-    phase:       0x03C60x2081
+    phase:       execute
     weight:      primary
     arrangement: sequence(primary, [1.0])
     contains:    [ExportProgressClaim]
@@ -501,7 +501,7 @@ vessel ExportProgress {
 
 vessel ConnectionErrorDialog {
     budget:      whole(0.25)
-    phase:       0x03C60x1D63
+    phase:       recover
     weight:      primary
     arrangement: sequence(primary, [0.7, 0.3])
     contains:    [ConnectionErrorClaim, RetryConnectionAfford]
@@ -515,35 +515,35 @@ stage DashboardStage {
     budget:  whole(1.0)
 
     phases: {
-        0x03C60x2205: {
+        idle: {
             arrangement: sequence(primary, [0.08, 0.15, 0.60, 0.12, 0.05])
             visible:     [Header, MetricsRow, ChartsGrid, AlertBanner, StatusBar]
             faded:       [AlertBanner]
             hidden:      [FilterPanel, GeoCard, ExportProgress, ConnectionErrorDialog, StaleWarningBanner]
             dominant:    ChartsGrid
         }
-        0x03C60x2080: {
+        orient: {
             arrangement: sequence(primary, [0.08, 0.15, 0.40, 0.20, 0.12, 0.05])
             visible:     [Header, MetricsRow, ChartsGrid, FilterPanel, AlertBanner, StatusBar]
             faded:       []
             hidden:      [GeoCard, ExportProgress, ConnectionErrorDialog, StaleWarningBanner]
             dominant:    FilterPanel
         }
-        0x03C60x2081: {
+        execute: {
             arrangement: sequence(primary, [0.08, 0.15, 0.50, 0.10, 0.12, 0.05])
             visible:     [Header, MetricsRow, ChartsGrid, ExportProgress, AlertBanner, StatusBar]
             faded:       [ChartsGrid]
             hidden:      [FilterPanel, GeoCard, ConnectionErrorDialog, StaleWarningBanner]
             dominant:    ExportProgress
         }
-        0x03C60x2082: {
+        verify: {
             arrangement: sequence(primary, [0.08, 0.15, 0.55, 0.05, 0.12, 0.05])
             visible:     [Header, MetricsRow, ChartsGrid, StaleWarningBanner, AlertBanner, StatusBar]
             faded:       []
             hidden:      [FilterPanel, GeoCard, ExportProgress, ConnectionErrorDialog]
             dominant:    ChartsGrid
         }
-        0x03C60x1D63: {
+        recover: {
             arrangement: sequence(primary, [0.08, 0.15, 0.35, 0.25, 0.12, 0.05])
             visible:     [Header, MetricsRow, ChartsGrid, ConnectionErrorDialog, AlertBanner, StatusBar]
             faded:       [ChartsGrid, MetricsRow]
@@ -592,10 +592,10 @@ flow RefreshFlow {
     ]
     on_stall: {
         threshold:  s(30)
-        surface:    0x03A60x231B
+        surface:    stale
         recovery:   [RefreshAfford, RetryConnectionAfford]
     }
-    terminal: success | partial(0x03A60x00BD) | failure(0x03A60x22A3)
+    terminal: success | partial(partial) | failure(blocked)
 }
 
 flow ExportFlow {
@@ -619,10 +619,10 @@ flow ExportFlow {
     ]
     on_stall: {
         threshold:  s(120)
-        surface:    0x03A60x22A3
+        surface:    blocked
         recovery:   []
     }
-    terminal: success | failure(0x03A60x22A3)
+    terminal: success | failure(blocked)
 }
 
 flow DrillDownFlow {
@@ -641,10 +641,10 @@ flow DrillDownFlow {
     ]
     on_stall: {
         threshold:  s(10)
-        surface:    0x03A60x2193
+        surface:    degraded
         recovery:   []
     }
-    terminal: success | partial(0x03A60x2193)
+    terminal: success | partial(degraded)
 }
 
 flow FilterFlow {
@@ -663,10 +663,10 @@ flow FilterFlow {
     ]
     on_stall: {
         threshold:  s(15)
-        surface:    0x03A60x00BD
+        surface:    partial
         recovery:   [RefreshAfford]
     }
-    terminal: success | partial(0x03A60x00BD)
+    terminal: success | partial(partial)
 }
 
 flow ConnectionRecoveryFlow {
@@ -685,10 +685,10 @@ flow ConnectionRecoveryFlow {
     ]
     on_stall: {
         threshold:  s(20)
-        surface:    0x03A60x2205
+        surface:    lost
         recovery:   [RetryConnectionAfford]
     }
-    terminal: success | failure(0x03A60x2205)
+    terminal: success | failure(lost)
 }
 
 -- ---------------------------------------------------------------------------
@@ -699,34 +699,34 @@ bond MetricsChartsBond between (MetricsRow, ChartsGrid) {
     kind:      corresponds(mapping = metrics_to_charts)
     direction: bidirectional
     strength:  flexible
-    on_break:  0x03A60x2193
+    on_break:  degraded
 }
 
 bond HeaderDateBond between (Header, ChartsGrid) {
     kind:      corresponds(mapping = date_range_to_data)
     direction: unidirectional(from = Header, to = ChartsGrid)
     strength:  rigid
-    on_break:  0x03A60x22A3
+    on_break:  blocked
 }
 
 bond HeaderMetricsBond between (Header, MetricsRow) {
     kind:      corresponds(mapping = date_range_to_metrics)
     direction: unidirectional(from = Header, to = MetricsRow)
     strength:  rigid
-    on_break:  0x03A60x22A3
+    on_break:  blocked
 }
 
 bond FilterChartsBond between (FilterPanel, ChartsGrid) {
     kind:      corresponds(mapping = filters_to_data)
     direction: unidirectional(from = FilterPanel, to = ChartsGrid)
     strength:  flexible
-    on_break:  0x03A60x2193
+    on_break:  degraded
 }
 
 bond AlertStatusBond between (AlertBanner, StatusBar) {
     kind:      parallels
     strength:  flexible
-    on_break:  0x03A60x2193
+    on_break:  degraded
 }
 
 -- ---------------------------------------------------------------------------

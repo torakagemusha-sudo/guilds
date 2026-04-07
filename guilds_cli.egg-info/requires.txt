@@ -1,0 +1,10 @@
+
+[dev]
+poethepoet>=0.31
+
+[pdf]
+reportlab>=4.2
+
+[pdf-gui]
+reportlab>=4.2
+kivy>=2.3

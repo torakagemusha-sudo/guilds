@@ -9,9 +9,9 @@
 -- SECTION 1: SHARED BINDINGS
 -- ---------------------------------------------------------------------------
 
-let outputCert = 0x03C40x2713
-let inferredCert = 0x03C4~
-let unknownCert = 0x03C40x2205
+let outputCert = certain
+let inferredCert = inferred
+let unknownCert = uncertain
 
 -- ---------------------------------------------------------------------------
 -- SECTION 2: CORE CLAIMS
@@ -19,7 +19,7 @@ let unknownCert = 0x03C40x2205
 
 claim OutputClaim {
     content:     text(process_output)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(shell_process)
     stakes:      medium
     freshness:   live
@@ -28,7 +28,7 @@ claim OutputClaim {
 
 claim StreamingOutputClaim {
     content:     text(partial_output)
-    certainty:   0x03C4~
+    certainty:   inferred
     provenance:  source.direct(shell_process)
     stakes:      low
     freshness:   live
@@ -37,7 +37,7 @@ claim StreamingOutputClaim {
 
 claim PromptClaim {
     content:     text(shell_prompt)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(shell_env)
     stakes:      low
     freshness:   event_driven(directory_change)
@@ -46,7 +46,7 @@ claim PromptClaim {
 
 claim WorkingDirClaim {
     content:     text(current_directory)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(shell_env)
     stakes:      medium
     freshness:   event_driven(directory_change)
@@ -55,7 +55,7 @@ claim WorkingDirClaim {
 
 claim ExitCodeClaim {
     content:     numeric(exit_code)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(process_exit)
     stakes:      high
     freshness:   snapshot(command_complete_time)
@@ -64,7 +64,7 @@ claim ExitCodeClaim {
 
 claim RuntimeClaim {
     content:     numeric(elapsed_seconds)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(process_timer)
     stakes:      low
     freshness:   live
@@ -73,7 +73,7 @@ claim RuntimeClaim {
 
 claim TabTitleClaim {
     content:     text(inferred_title)
-    certainty:   0x03C4~
+    certainty:   inferred
     provenance:  source.derived(process_name, method = title_inference)
     stakes:      low
     freshness:   event_driven(process_change)
@@ -82,7 +82,7 @@ claim TabTitleClaim {
 
 claim ShellTypeClaim {
     content:     status(shell_name)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(shell_env)
     stakes:      low
     freshness:   static
@@ -91,7 +91,7 @@ claim ShellTypeClaim {
 
 claim ConnectionClaim {
     content:     status(connection_state)
-    certainty:   0x03C4~
+    certainty:   inferred
     provenance:  source.derived(heartbeat, method = connection_monitor)
     stakes:      high
     freshness:   polled(interval = s(5))
@@ -100,7 +100,7 @@ claim ConnectionClaim {
 
 claim ErrorClaim {
     content:     text(stderr_output)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(process_stderr)
     stakes:      high
     freshness:   snapshot(error_time)
@@ -109,7 +109,7 @@ claim ErrorClaim {
 
 claim SearchResultsClaim {
     content:     numeric(match_count)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(search_engine)
     stakes:      low
     freshness:   event_driven(search_query)
@@ -118,7 +118,7 @@ claim SearchResultsClaim {
 
 claim LoadingClaim {
     content:     empty("Starting process...")
-    certainty:   0x03C40x2205
+    certainty:   uncertain
     provenance:  source.direct(system)
     stakes:      low
     freshness:   event_driven(process_start)
@@ -127,7 +127,7 @@ claim LoadingClaim {
 
 claim CancelWarningClaim {
     content:     text("Sending interrupt signal")
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(system)
     stakes:      medium
     freshness:   event_driven(cancel_action)
@@ -136,7 +136,7 @@ claim CancelWarningClaim {
 
 claim KillWarningClaim {
     content:     text("Force kill will terminate immediately")
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(system)
     stakes:      high
     freshness:   event_driven(kill_action)
@@ -145,7 +145,7 @@ claim KillWarningClaim {
 
 claim CloseRunningWarningClaim {
     content:     text("Process still running in this tab")
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(system)
     stakes:      high
     freshness:   event_driven(close_action)
@@ -166,13 +166,13 @@ afford ExecuteAfford {
             trigger:     user_action(ExecuteAfford)
             obligation:  execute(spawn_process)
             deadline:    none
-            on_breach:   0x03A60x22A3
+            on_breach:   blocked
         }
         contract AckContract {
             trigger:     user_action(ExecuteAfford)
             obligation:  acknowledge
             deadline:    ms(50)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -187,7 +187,7 @@ afford CancelAfford {
             trigger:     user_action(CancelAfford)
             obligation:  execute(send_sigint)
             deadline:    ms(100)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   hidden
@@ -199,16 +199,16 @@ afford ForceKillAfford {
     requires:     [process_running, cancel_attempted]
     contracts: [
         contract KillWarnFirst {
-            trigger:     phase_enter(0x03C60x2081)
+            trigger:     phase_enter(execute)
             obligation:  display(KillWarningClaim)
             deadline:    none
-            on_breach:   0x03A60x2717
+            on_breach:   fatal
         }
         contract KillContract {
             trigger:     user_action(ForceKillAfford)
             obligation:  execute(send_sigkill)
             deadline:    ms(50)
-            on_breach:   0x03A60x2717
+            on_breach:   fatal
         }
     ]
     on_unavail:   hidden
@@ -223,7 +223,7 @@ afford NewTabAfford {
             trigger:     user_action(NewTabAfford)
             obligation:  execute(spawn_shell)
             deadline:    s(2)
-            on_breach:   0x03A60x22A3
+            on_breach:   blocked
         }
     ]
     on_unavail:   fade_locked
@@ -238,13 +238,13 @@ afford CloseTabAfford {
             trigger:     condition(process_running)
             obligation:  display(CloseRunningWarningClaim)
             deadline:    none
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
         contract CloseTabContract {
             trigger:     user_action(CloseTabAfford)
             obligation:  execute(terminate_tab)
             deadline:    ms(500)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -259,7 +259,7 @@ afford SwitchTabAfford {
             trigger:     user_action(SwitchTabAfford)
             obligation:  navigate(target_tab)
             deadline:    ms(100)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -274,14 +274,14 @@ afford ScrollAfford {
             trigger:     user_action(ScrollAfford)
             obligation:  execute(scroll_viewport)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   hidden
 }
 
 afford SearchAfford {
-    perceivable:  mode_revealed(phase = 0x03C60x2080)
+    perceivable:  mode_revealed(phase = orient)
     offered:      input(type = text)
     requires:     [output_not_empty]
     contracts: [
@@ -289,7 +289,7 @@ afford SearchAfford {
             trigger:     user_action(SearchAfford)
             obligation:  display(SearchResultsClaim)
             deadline:    ms(200)
-            on_breach:   0x03A60x00BD
+            on_breach:   partial
         }
     ]
     on_unavail:   fade_locked
@@ -304,20 +304,20 @@ afford CopyAfford {
             trigger:     user_action(CopyAfford)
             obligation:  execute(copy_to_clipboard)
             deadline:    ms(100)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
         contract CopyAck {
             trigger:     user_action(CopyAfford)
             obligation:  acknowledge
             deadline:    ms(200)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   hidden
 }
 
 afford ClearAfford {
-    perceivable:  mode_revealed(phase = 0x03C60x2205)
+    perceivable:  mode_revealed(phase = idle)
     offered:      activate
     requires:     [output_not_empty]
     contracts: [
@@ -325,7 +325,7 @@ afford ClearAfford {
             trigger:     user_action(ClearAfford)
             obligation:  execute(clear_buffer)
             deadline:    ms(50)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -346,13 +346,13 @@ vessel TabButton {
             trigger:     user_action(SwitchTabAfford)
             obligation:  navigate(this_tab)
             deadline:    ms(100)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     failures: [
         FailureSpec {
             trigger:   shell_crash
-            surfaces:  0x03A60x2717
+            surfaces:  fatal
             propagates: no
         }
     ]
@@ -369,7 +369,7 @@ vessel TabBar {
 
 vessel OutputViewport {
     budget:      whole(0.80)
-    phase:       [0x03C60x2080, 0x03C60x2081, 0x03C60x2082]
+    phase:       [orient, execute, verify]
     weight:      primary
     arrangement: sequence(primary, [1.0])
     contains:    [OutputClaim, ScrollAfford, CopyAfford, SearchAfford]
@@ -378,13 +378,13 @@ vessel OutputViewport {
             trigger:     system_event(output_received)
             obligation:  acknowledge
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     failures: [
         FailureSpec {
             trigger:   buffer_overflow
-            surfaces:  0x03A60x00BD
+            surfaces:  partial
             propagates: no
         }
     ]
@@ -392,16 +392,16 @@ vessel OutputViewport {
 
 vessel CommandInput {
     budget:      whole(0.05)
-    phase:       [0x03C60x2205, 0x03C60x2081]
+    phase:       [idle, execute]
     weight:      primary
     arrangement: sequence(primary, [0.15, 0.85])
     contains:    [PromptClaim, ExecuteAfford]
     contracts: [
         contract InputFocus {
-            trigger:     phase_enter(0x03C60x2205)
+            trigger:     phase_enter(idle)
             obligation:  display(PromptClaim)
             deadline:    ms(100)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
 }
@@ -415,7 +415,7 @@ vessel StatusBar {
     failures: [
         FailureSpec {
             trigger:   connection_lost
-            surfaces:  0x03A60x2205
+            surfaces:  lost
             propagates: conditional
         }
     ]
@@ -423,7 +423,7 @@ vessel StatusBar {
 
 vessel ProcessControlOverlay {
     budget:      whole(0.10)
-    phase:       0x03C60x2081
+    phase:       execute
     weight:      secondary
     arrangement: sequence(cross, [0.5, 0.5])
     contains:    [CancelAfford, ForceKillAfford, RuntimeClaim]
@@ -431,7 +431,7 @@ vessel ProcessControlOverlay {
 
 vessel ErrorOverlay {
     budget:      whole(0.25)
-    phase:       0x03C60x1D63
+    phase:       recover
     weight:      primary
     arrangement: sequence(primary, [0.7, 0.3])
     contains:    [ErrorClaim, ExitCodeClaim]
@@ -439,7 +439,7 @@ vessel ErrorOverlay {
 
 vessel SearchBar {
     budget:      whole(0.05)
-    phase:       0x03C60x2080
+    phase:       orient
     weight:      secondary
     arrangement: sequence(primary, [0.7, 0.3])
     contains:    [SearchAfford, SearchResultsClaim]
@@ -453,35 +453,35 @@ stage TerminalStage {
     budget:  whole(1.0)
 
     phases: {
-        0x03C60x2205: {
+        idle: {
             arrangement: sequence(primary, [0.05, 0.85, 0.05, 0.05])
             visible:     [TabBar, OutputViewport, CommandInput, StatusBar]
             faded:       []
             hidden:      [ProcessControlOverlay, ErrorOverlay, SearchBar]
             dominant:    CommandInput
         }
-        0x03C60x2080: {
+        orient: {
             arrangement: sequence(primary, [0.05, 0.05, 0.80, 0.05, 0.05])
             visible:     [TabBar, SearchBar, OutputViewport, CommandInput, StatusBar]
             faded:       [CommandInput]
             hidden:      [ProcessControlOverlay, ErrorOverlay]
             dominant:    OutputViewport
         }
-        0x03C60x2081: {
+        execute: {
             arrangement: sequence(primary, [0.05, 0.75, 0.10, 0.05, 0.05])
             visible:     [TabBar, OutputViewport, ProcessControlOverlay, CommandInput, StatusBar]
             faded:       [CommandInput, StatusBar]
             hidden:      [ErrorOverlay, SearchBar]
             dominant:    OutputViewport
         }
-        0x03C60x2082: {
+        verify: {
             arrangement: sequence(primary, [0.05, 0.85, 0.05, 0.05])
             visible:     [TabBar, OutputViewport, CommandInput, StatusBar]
             faded:       []
             hidden:      [ProcessControlOverlay, ErrorOverlay, SearchBar]
             dominant:    OutputViewport
         }
-        0x03C60x1D63: {
+        recover: {
             arrangement: sequence(primary, [0.05, 0.60, 0.25, 0.05, 0.05])
             visible:     [TabBar, OutputViewport, ErrorOverlay, CommandInput, StatusBar]
             faded:       [StatusBar]
@@ -530,10 +530,10 @@ flow CommandFlow {
     ]
     on_stall: {
         threshold:  s(30)
-        surface:    0x03A60x27F3
+        surface:    recovering
         recovery:   [CancelAfford, ForceKillAfford]
     }
-    terminal: success | failure(0x03A6?) | partial(0x03A60x00BD) | abandoned(0x2298)
+    terminal: success | failure(unknown) | partial(partial) | abandoned(0x2298)
 }
 
 flow NewTabFlow {
@@ -552,10 +552,10 @@ flow NewTabFlow {
     ]
     on_stall: {
         threshold:  s(5)
-        surface:    0x03A60x22A3
+        surface:    blocked
         recovery:   [CloseTabAfford]
     }
-    terminal: success | failure(0x03A60x2717)
+    terminal: success | failure(fatal)
 }
 
 flow SearchFlow {
@@ -574,10 +574,10 @@ flow SearchFlow {
     ]
     on_stall: {
         threshold:  s(2)
-        surface:    0x03A60x00BD
+        surface:    partial
         recovery:   []
     }
-    terminal: success | partial(0x03A60x00BD)
+    terminal: success | partial(partial)
 }
 
 -- ---------------------------------------------------------------------------
@@ -587,28 +587,28 @@ flow SearchFlow {
 bond TabParallelism between (TabButton, TabButton) {
     kind:      parallels
     strength:  rigid
-    on_break:  0x03A60x2192
+    on_break:  cascade
 }
 
 bond InputOutputCorrespondence between (CommandInput, OutputViewport) {
     kind:      corresponds(mapping = command_to_output)
     direction: unidirectional(from = CommandInput, to = OutputViewport)
     strength:  rigid
-    on_break:  0x03A60x2717
+    on_break:  fatal
 }
 
 bond ProcessControlBond between (ProcessControlOverlay, OutputViewport) {
     kind:      corresponds(mapping = process_to_controls)
     direction: unidirectional(from = OutputViewport, to = ProcessControlOverlay)
     strength:  flexible
-    on_break:  0x03A60x2193
+    on_break:  degraded
 }
 
 bond ErrorCorrespondence between (ErrorOverlay, OutputViewport) {
     kind:      corresponds(mapping = stderr_to_error)
     direction: unidirectional(from = OutputViewport, to = ErrorOverlay)
     strength:  flexible
-    on_break:  0x03A60x2193
+    on_break:  degraded
 }
 
 -- ---------------------------------------------------------------------------
@@ -620,8 +620,8 @@ seam TabContentSeam between (TabBar, TerminalStage) {
     passage: [focus, tab_switch_event]
     filter:  none
     failure: {
-        blocks: [0x03A60x2193]
-        passes: [0x03A60x2717]
+        blocks: [degraded]
+        passes: [fatal]
         transforms: []
     }
 }
@@ -632,7 +632,7 @@ seam OutputProcessSeam between (OutputViewport, CommandInput) {
     filter:  none
     failure: {
         blocks: []
-        passes: [0x03A60x2717, 0x03A60x22A3]
+        passes: [fatal, blocked]
         transforms: []
     }
 }
@@ -642,7 +642,7 @@ seam StatusEnvSeam between (StatusBar, CommandInput) {
     passage: [cwd_data, shell_type_data]
     filter:  none
     failure: {
-        blocks: [0x03A60x2193]
+        blocks: [degraded]
         passes: []
         transforms: []
     }

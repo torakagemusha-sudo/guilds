@@ -1,0 +1,3 @@
+[console_scripts]
+guilds = core.guilds_cli:main
+tf_docs = core.scripts.tf_docs:main

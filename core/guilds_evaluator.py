@@ -44,13 +44,13 @@ from guilds_parser import (
 # SECTION 1: EVAL CONTEXT
 # ---------------------------------------------------------------------------
 
-# Phase name constants (hex-encoded sigil strings)
-PHASE_ORIENT    = "0x03C60x2080"
-PHASE_EXECUTE   = "0x03C60x2081"
-PHASE_VERIFY    = "0x03C60x2082"
-PHASE_INTEGRATE = "0x03C60x2083"
-PHASE_RECOVER   = "0x03C60x1D63"
-PHASE_IDLE      = "0x03C60x2205"
+# Phase name constants (sigil strings as they appear in .guilds source)
+PHASE_ORIENT    = "orient"
+PHASE_EXECUTE   = "execute"
+PHASE_VERIFY    = "verify"
+PHASE_INTEGRATE = "integrate"
+PHASE_RECOVER   = "recover"
+PHASE_IDLE      = "idle"
 
 ALL_PHASES = [PHASE_ORIENT, PHASE_EXECUTE, PHASE_VERIFY,
               PHASE_INTEGRATE, PHASE_RECOVER, PHASE_IDLE]
@@ -875,11 +875,11 @@ class FailureEvaluator:
         result: set[TT] = set()
         # Map sigil-like substrings to TT
         phi_map = {
-            "0x03A60x2193": TT.PHI_DEGRADED, "0x03A60x22A3": TT.PHI_BLOCKED,
-            "0x03A60x2205": TT.PHI_LOST,     "0x03A60x00BD": TT.PHI_PARTIAL,
-            "0x03A60x231B": TT.PHI_STALE,    "0x03A60x27F3": TT.PHI_RECOVER,
-            "0x03A60x2192": TT.PHI_CASCADE,  "0x03A6?":      TT.PHI_UNKNOWN,
-            "0x03A60x2717": TT.PHI_FATAL,    "0x03A60x2014": TT.PHI_SILENT,
+            "degraded":   TT.PHI_DEGRADED, "blocked":    TT.PHI_BLOCKED,
+            "lost":       TT.PHI_LOST,     "partial":    TT.PHI_PARTIAL,
+            "stale":      TT.PHI_STALE,    "recovering": TT.PHI_RECOVER,
+            "cascade":    TT.PHI_CASCADE,  "unknown":    TT.PHI_UNKNOWN,
+            "fatal":      TT.PHI_FATAL,    "silent":     TT.PHI_SILENT,
             "PHI_DEGRADED": TT.PHI_DEGRADED, "PHI_BLOCKED":  TT.PHI_BLOCKED,
             "PHI_FATAL":    TT.PHI_FATAL,    "PHI_UNKNOWN":  TT.PHI_UNKNOWN,
         }

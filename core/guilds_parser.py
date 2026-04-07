@@ -3,13 +3,13 @@ GUILDS v2 Parser
 ================
 Lexer -> Token Stream -> Recursive Descent Parser -> AST -> Type Checker -> Violation Report
 
-Sigil encoding: All GUILDS sigils are expressed as 0xXXXX hex sequences in source.
+Sigil encoding: All GUILDS sigils are expressed as plain English words in source.
 Examples:
-  0x03C4~           -> tau_inferred    (certainty: inferred)
-  0x03940x2192      -> dlg_assert      (dialogue: assert)
-  0x03A60x2717      -> phi_fatal       (failure: fatal)
-  0x03C60x2081      -> phase_execute   (phi_1)
-  0x25C9            -> focus           (cognitive: focus point)
+  inferred          -> tau_inferred    (certainty: inferred)
+  assert            -> dlg_assert      (dialogue: assert)
+  fatal             -> phi_fatal       (failure: fatal)
+  execute           -> phase_execute   (phase 1)
+  focus             -> focus           (cognitive: focus point)
 """
 
 from __future__ import annotations
@@ -89,50 +89,50 @@ class TT(Enum):
     KW_MEDIUM   = auto()
     KW_HIGH     = auto()
     KW_CRITICAL = auto()
-    # Phase sigils  (0x03C6 = phi)
-    PH_ORIENT    = auto()  # 0x03C60x2080  phi_0
-    PH_EXECUTE   = auto()  # 0x03C60x2081  phi_1
-    PH_VERIFY    = auto()  # 0x03C60x2082  phi_2
-    PH_INTEGRATE = auto()  # 0x03C60x2083  phi_3
-    PH_RECOVER   = auto()  # 0x03C60x1D63  phi_r
-    PH_IDLE      = auto()  # 0x03C60x2205  phi_empty
-    # Certainty sigils  (0x03C4 = tau)
-    TAU_CERTAIN   = auto()  # 0x03C40x2713
-    TAU_INFERRED  = auto()  # 0x03C4~
-    TAU_PROBABLE  = auto()  # 0x03C4?
-    TAU_UNKNOWN   = auto()  # 0x03C40x2205
-    TAU_CONTESTED = auto()  # 0x03C40x2694
-    TAU_STALE     = auto()  # 0x03C40x231B
-    # Dialogue sigils  (0x0394 = Delta)
-    DLG_ASSERT  = auto()  # 0x03940x2192
-    DLG_QUERY   = auto()  # 0x0394?
-    DLG_PROPOSE = auto()  # 0x03940x2295
-    DLG_WARN    = auto()  # 0x03940x26A0
-    DLG_ACK     = auto()  # 0x03940x2713
-    DLG_SILENCE = auto()  # 0x03940x2205
-    DLG_CORRECT = auto()  # 0x03940x2190
-    DLG_ESCAL   = auto()  # 0x03940x2191
-    DLG_CELEB   = auto()  # 0x03940x2605
-    # Failure sigils  (0x03A6 = Phi)
-    PHI_DEGRADED  = auto()  # 0x03A60x2193
-    PHI_BLOCKED   = auto()  # 0x03A60x22A3
-    PHI_LOST      = auto()  # 0x03A60x2205
-    PHI_PARTIAL   = auto()  # 0x03A60x00BD
-    PHI_STALE     = auto()  # 0x03A60x231B
-    PHI_RECOVER   = auto()  # 0x03A60x27F3
-    PHI_CASCADE   = auto()  # 0x03A60x2192
-    PHI_UNKNOWN   = auto()  # 0x03A6?
-    PHI_FATAL     = auto()  # 0x03A60x2717
-    PHI_SILENT    = auto()  # 0x03A60x2014
+    # Phase sigils  (orient=idle, execute=active, verify=checking, integrate=merging, recover=repairing)
+    PH_ORIENT    = auto()  # orient
+    PH_EXECUTE   = auto()  # execute
+    PH_VERIFY    = auto()  # verify
+    PH_INTEGRATE = auto()  # integrate
+    PH_RECOVER   = auto()  # recover
+    PH_IDLE      = auto()  # idle
+    # Certainty sigils  (tau = certainty grade)
+    TAU_CERTAIN   = auto()  # certain
+    TAU_INFERRED  = auto()  # inferred
+    TAU_PROBABLE  = auto()  # probable
+    TAU_UNKNOWN   = auto()  # uncertain
+    TAU_CONTESTED = auto()  # contested
+    TAU_STALE     = auto()  # outdated
+    # Dialogue sigils  (Delta = speech act)
+    DLG_ASSERT  = auto()  # assert
+    DLG_QUERY   = auto()  # query
+    DLG_PROPOSE = auto()  # propose
+    DLG_WARN    = auto()  # warn
+    DLG_ACK     = auto()  # ack
+    DLG_SILENCE = auto()  # silence
+    DLG_CORRECT = auto()  # correct
+    DLG_ESCAL   = auto()  # escalate
+    DLG_CELEB   = auto()  # celebrate
+    # Failure sigils  (Phi = failure mode)
+    PHI_DEGRADED  = auto()  # degraded
+    PHI_BLOCKED   = auto()  # blocked
+    PHI_LOST      = auto()  # lost
+    PHI_PARTIAL   = auto()  # partial
+    PHI_STALE     = auto()  # stale
+    PHI_RECOVER   = auto()  # recovering
+    PHI_CASCADE   = auto()  # cascade
+    PHI_UNKNOWN   = auto()  # unknown
+    PHI_FATAL     = auto()  # fatal
+    PHI_SILENT    = auto()  # silent
     # Cognitive sigils
-    COG_FOCUS     = auto()  # 0x25C9
-    COG_PERIPH    = auto()  # 0x25CB
-    COG_COST      = auto()  # 0x039B0x2193
-    COG_YIELD     = auto()  # 0x039B0x2191
-    COG_LOAD      = auto()  # 0x039B0x03A9
-    COG_SALIENCE  = auto()  # 0x2726
-    COG_ANCHOR    = auto()  # 0x2693
-    COG_FADE      = auto()  # 0x039B0x0303
+    COG_FOCUS     = auto()  # focus
+    COG_PERIPH    = auto()  # peripheral
+    COG_COST      = auto()  # cost
+    COG_YIELD     = auto()  # yield
+    COG_LOAD      = auto()  # load
+    COG_SALIENCE  = auto()  # salience
+    COG_ANCHOR    = auto()  # anchored
+    COG_FADE      = auto()  # fade
     # Special
     EOF = auto()
 
@@ -158,52 +158,52 @@ KEYWORDS: dict[str, TT] = {
 }
 
 # Sigil table: source text -> TT
-# Each sigil is a hex-encoded string as it appears in .guilds source files
+# Each sigil is a plain English word as it appears in .guilds source files
 SIGILS: dict[str, TT] = {
     # Phase sigils
-    "0x03C60x2080": TT.PH_ORIENT,
-    "0x03C60x2081": TT.PH_EXECUTE,
-    "0x03C60x2082": TT.PH_VERIFY,
-    "0x03C60x2083": TT.PH_INTEGRATE,
-    "0x03C60x1D63": TT.PH_RECOVER,
-    "0x03C60x2205": TT.PH_IDLE,
+    "orient":     TT.PH_ORIENT,
+    "execute":    TT.PH_EXECUTE,
+    "verify":     TT.PH_VERIFY,
+    "integrate":  TT.PH_INTEGRATE,
+    "recover":    TT.PH_RECOVER,
+    "idle":       TT.PH_IDLE,
     # Certainty sigils
-    "0x03C40x2713": TT.TAU_CERTAIN,
-    "0x03C4~":      TT.TAU_INFERRED,
-    "0x03C4?":      TT.TAU_PROBABLE,
-    "0x03C40x2205": TT.TAU_UNKNOWN,
-    "0x03C40x2694": TT.TAU_CONTESTED,
-    "0x03C40x231B": TT.TAU_STALE,
+    "certain":    TT.TAU_CERTAIN,
+    "inferred":   TT.TAU_INFERRED,
+    "probable":   TT.TAU_PROBABLE,
+    "uncertain":  TT.TAU_UNKNOWN,
+    "contested":  TT.TAU_CONTESTED,
+    "outdated":   TT.TAU_STALE,
     # Dialogue sigils
-    "0x03940x2192": TT.DLG_ASSERT,
-    "0x0394?":      TT.DLG_QUERY,
-    "0x03940x2295": TT.DLG_PROPOSE,
-    "0x03940x26A0": TT.DLG_WARN,
-    "0x03940x2713": TT.DLG_ACK,
-    "0x03940x2205": TT.DLG_SILENCE,
-    "0x03940x2190": TT.DLG_CORRECT,
-    "0x03940x2191": TT.DLG_ESCAL,
-    "0x03940x2605": TT.DLG_CELEB,
+    "assert":     TT.DLG_ASSERT,
+    "query":      TT.DLG_QUERY,
+    "propose":    TT.DLG_PROPOSE,
+    "warn":       TT.DLG_WARN,
+    "ack":        TT.DLG_ACK,
+    "silence":    TT.DLG_SILENCE,
+    "correct":    TT.DLG_CORRECT,
+    "escalate":   TT.DLG_ESCAL,
+    "celebrate":  TT.DLG_CELEB,
     # Failure sigils
-    "0x03A60x2193": TT.PHI_DEGRADED,
-    "0x03A60x22A3": TT.PHI_BLOCKED,
-    "0x03A60x2205": TT.PHI_LOST,
-    "0x03A60x00BD": TT.PHI_PARTIAL,
-    "0x03A60x231B": TT.PHI_STALE,
-    "0x03A60x27F3": TT.PHI_RECOVER,
-    "0x03A60x2192": TT.PHI_CASCADE,
-    "0x03A6?":      TT.PHI_UNKNOWN,
-    "0x03A60x2717": TT.PHI_FATAL,
-    "0x03A60x2014": TT.PHI_SILENT,
+    "degraded":   TT.PHI_DEGRADED,
+    "blocked":    TT.PHI_BLOCKED,
+    "lost":       TT.PHI_LOST,
+    "partial":    TT.PHI_PARTIAL,
+    "stale":      TT.PHI_STALE,
+    "recovering": TT.PHI_RECOVER,
+    "cascade":    TT.PHI_CASCADE,
+    "unknown":    TT.PHI_UNKNOWN,
+    "fatal":      TT.PHI_FATAL,
+    "silent":     TT.PHI_SILENT,
     # Cognitive sigils
-    "0x25C9":       TT.COG_FOCUS,
-    "0x25CB":       TT.COG_PERIPH,
-    "0x039B0x2193": TT.COG_COST,
-    "0x039B0x2191": TT.COG_YIELD,
-    "0x039B0x03A9": TT.COG_LOAD,
-    "0x2726":       TT.COG_SALIENCE,
-    "0x2693":       TT.COG_ANCHOR,
-    "0x039B0x0303": TT.COG_FADE,
+    "focus":      TT.COG_FOCUS,
+    "peripheral": TT.COG_PERIPH,
+    "cost":       TT.COG_COST,
+    "yield":      TT.COG_YIELD,
+    "load":       TT.COG_LOAD,
+    "salience":   TT.COG_SALIENCE,
+    "anchored":   TT.COG_ANCHOR,
+    "fade":       TT.COG_FADE,
 }
 
 # Sort sigils longest-first so the lexer matches greedily
@@ -226,6 +226,13 @@ DIALOGUE_SIGILS = {
     TT.DLG_ASSERT, TT.DLG_QUERY, TT.DLG_PROPOSE, TT.DLG_WARN,
     TT.DLG_ACK, TT.DLG_SILENCE, TT.DLG_CORRECT, TT.DLG_ESCAL, TT.DLG_CELEB,
 }
+# All sigil token types — used to allow sigil words as name tokens where needed
+ALL_SIGIL_TYPES = (
+    PHASE_SIGILS | CERTAINTY_SIGILS | FAILURE_SIGILS | DIALOGUE_SIGILS | {
+        TT.COG_FOCUS, TT.COG_PERIPH, TT.COG_COST, TT.COG_YIELD,
+        TT.COG_LOAD, TT.COG_SALIENCE, TT.COG_ANCHOR, TT.COG_FADE,
+    }
+)
 
 
 @dataclass
@@ -328,6 +335,14 @@ class Lexer:
         """Try to match a sigil at current position. Return (sigil_str, TT) or None."""
         for s in SIGIL_LIST:
             if self.src[self.pos:self.pos+len(s)] == s:
+                # Word-boundary check: if the sigil ends with a letter, the next
+                # character must not be alphanumeric or '_' (prevents matching
+                # 'execute' inside 'executed', or 'fade' inside 'fade_locked').
+                end_pos = self.pos + len(s)
+                if s[-1].isalpha() and end_pos < len(self.src):
+                    next_ch = self.src[end_pos]
+                    if next_ch.isalnum() or next_ch == '_':
+                        continue
                 return s, SIGILS[s]
         return None
 
@@ -356,7 +371,7 @@ class Lexer:
                 self.tokens.append(Token(TT.ARROW, "->", start_line, start_col))
                 continue
 
-            # Sigils (try before anything else; they start with 0x)
+            # Sigils (tried before identifier/keyword so they take priority)
             sigil_match = self.try_sigil()
             if sigil_match:
                 s, tt = sigil_match
@@ -635,6 +650,19 @@ class Parser:
         if tok.typ != tt:
             raise ParseError(f"Expected {tt.name}", tok)
         return tok
+
+    def expect_name(self) -> str:
+        """Consume an IDENT token or any sigil token as a bare name string.
+
+        Sigil words (e.g. 'execute', 'degraded') are valid identifier-like
+        names in trigger/obligation/function-call positions even though the
+        lexer classifies them as sigil tokens.
+        """
+        tok = self.peek()
+        if tok.typ == TT.IDENT or tok.typ in ALL_SIGIL_TYPES:
+            self.advance()
+            return tok.val
+        self.error("Expected identifier")
 
     def match(self, *types: TT) -> Optional[Token]:
         if self.peek_type() in types:
@@ -1257,7 +1285,7 @@ class Parser:
 
     def parse_trigger(self) -> TriggerNode:
         tok = self.peek()
-        kind = self.expect(TT.IDENT).val
+        kind = self.expect_name()
         args = []
         if self.match(TT.LPAREN):
             args = self.parse_raw_arg_list()
@@ -1266,7 +1294,7 @@ class Parser:
 
     def parse_obligation(self) -> ObligationNode:
         tok = self.peek()
-        kind = self.expect(TT.IDENT).val
+        kind = self.expect_name()
         args = []
         if self.match(TT.LPAREN):
             args = self.parse_raw_arg_list()
@@ -1375,7 +1403,10 @@ class Parser:
 
     def parse_ident_list_raw(self) -> list[str]:
         items = []
-        while self.peek_type() == TT.IDENT:
+        while True:
+            tt = self.peek_type()
+            if tt != TT.IDENT and tt not in ALL_SIGIL_TYPES:
+                break
             items.append(self.advance().val)
             self.match(TT.COMMA)
         return items
@@ -1661,8 +1692,8 @@ class TypeChecker:
 
         # TC-12: Phase completeness
         declared = set(s.phases.keys())
-        all_phases = {"0x03C60x2080", "0x03C60x2081", "0x03C60x2082",
-                      "0x03C60x2083", "0x03C60x1D63", "0x03C60x2205"}
+        all_phases = {"orient", "execute", "verify",
+                      "integrate", "recover", "idle"}
         if s.default is None and declared != all_phases:
             missing_phases = all_phases - declared
             self.v("VIOL-04", "warning",

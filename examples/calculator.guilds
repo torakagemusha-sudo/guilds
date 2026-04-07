@@ -14,7 +14,7 @@
 
 claim DisplayClaim {
     content:     text(display_value)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(calculator_state)
     stakes:      medium
     freshness:   event_driven(input_change)
@@ -23,7 +23,7 @@ claim DisplayClaim {
 
 claim ResultClaim {
     content:     numeric(calculation_result)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.derived(operands, method = arithmetic)
     stakes:      high
     freshness:   event_driven(calculation_complete)
@@ -32,7 +32,7 @@ claim ResultClaim {
 
 claim OperatorClaim {
     content:     status(current_operator)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(calculator_state)
     stakes:      low
     freshness:   event_driven(operator_change)
@@ -41,7 +41,7 @@ claim OperatorClaim {
 
 claim MemoryClaim {
     content:     numeric(memory_value)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(memory_store)
     stakes:      medium
     freshness:   event_driven(memory_change)
@@ -50,7 +50,7 @@ claim MemoryClaim {
 
 claim ErrorClaim {
     content:     text(error_message)
-    certainty:   0x03C40x2713
+    certainty:   certain
     provenance:  source.direct(calculator_engine)
     stakes:      high
     freshness:   event_driven(error_occurred)
@@ -70,7 +70,7 @@ afford DigitAfford {
             trigger:     user_action(DigitAfford)
             obligation:  execute(append_digit)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -85,7 +85,7 @@ afford OperatorAfford {
             trigger:     user_action(OperatorAfford)
             obligation:  execute(set_operator)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -100,7 +100,7 @@ afford EqualsAfford {
             trigger:     user_action(EqualsAfford)
             obligation:  execute(perform_calculation)
             deadline:    ms(100)
-            on_breach:   0x03A60x22A3
+            on_breach:   blocked
         }
     ]
     on_unavail:   fade_locked
@@ -115,7 +115,7 @@ afford ClearAfford {
             trigger:     user_action(ClearAfford)
             obligation:  execute(reset_calculator)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   hidden
@@ -130,7 +130,7 @@ afford ClearEntryAfford {
             trigger:     user_action(ClearEntryAfford)
             obligation:  execute(clear_current_entry)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   hidden
@@ -145,7 +145,7 @@ afford MemoryStoreAfford {
             trigger:     user_action(MemoryStoreAfford)
             obligation:  execute(store_to_memory)
             deadline:    ms(50)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -160,7 +160,7 @@ afford MemoryRecallAfford {
             trigger:     user_action(MemoryRecallAfford)
             obligation:  execute(recall_from_memory)
             deadline:    ms(50)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   hidden
@@ -175,7 +175,7 @@ afford MemoryClearAfford {
             trigger:     user_action(MemoryClearAfford)
             obligation:  execute(clear_memory)
             deadline:    ms(50)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   hidden
@@ -190,7 +190,7 @@ afford DecimalAfford {
             trigger:     user_action(DecimalAfford)
             obligation:  execute(append_decimal)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -205,7 +205,7 @@ afford NegateAfford {
             trigger:     user_action(NegateAfford)
             obligation:  execute(negate_value)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -220,7 +220,7 @@ afford Digit7Afford {
             trigger:     user_action(Digit7Afford)
             obligation:  execute(append_digit_7)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -235,7 +235,7 @@ afford Digit8Afford {
             trigger:     user_action(Digit8Afford)
             obligation:  execute(append_digit_8)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -250,7 +250,7 @@ afford Digit9Afford {
             trigger:     user_action(Digit9Afford)
             obligation:  execute(append_digit_9)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -265,7 +265,7 @@ afford Digit4Afford {
             trigger:     user_action(Digit4Afford)
             obligation:  execute(append_digit_4)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -280,7 +280,7 @@ afford Digit5Afford {
             trigger:     user_action(Digit5Afford)
             obligation:  execute(append_digit_5)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -295,7 +295,7 @@ afford Digit6Afford {
             trigger:     user_action(Digit6Afford)
             obligation:  execute(append_digit_6)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -310,7 +310,7 @@ afford Digit1Afford {
             trigger:     user_action(Digit1Afford)
             obligation:  execute(append_digit_1)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -325,7 +325,7 @@ afford Digit2Afford {
             trigger:     user_action(Digit2Afford)
             obligation:  execute(append_digit_2)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -340,7 +340,7 @@ afford Digit3Afford {
             trigger:     user_action(Digit3Afford)
             obligation:  execute(append_digit_3)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -355,7 +355,7 @@ afford Digit0Afford {
             trigger:     user_action(Digit0Afford)
             obligation:  execute(append_digit_0)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -370,7 +370,7 @@ afford DivideAfford {
             trigger:     user_action(DivideAfford)
             obligation:  execute(set_operator_divide)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -385,7 +385,7 @@ afford MultiplyAfford {
             trigger:     user_action(MultiplyAfford)
             obligation:  execute(set_operator_multiply)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -400,7 +400,7 @@ afford SubtractAfford {
             trigger:     user_action(SubtractAfford)
             obligation:  execute(set_operator_subtract)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -415,7 +415,7 @@ afford AddAfford {
             trigger:     user_action(AddAfford)
             obligation:  execute(set_operator_add)
             deadline:    ms(16)
-            on_breach:   0x03A60x2193
+            on_breach:   degraded
         }
     ]
     on_unavail:   fade_locked
@@ -434,7 +434,7 @@ vessel DisplayVessel {
     failures: [
         FailureSpec {
             trigger:   overflow_error
-            surfaces:  0x03A60x22A3
+            surfaces:  blocked
             propagates: no
         }
     ]
@@ -442,7 +442,7 @@ vessel DisplayVessel {
 
 vessel PrimaryKeypad {
     budget:      whole(0.40)
-    phase:       [0x03C60x2205, 0x03C60x2081]
+    phase:       [idle, execute]
     weight:      primary
     arrangement: sequence(cross, [0.34, 0.33, 0.33])
     contains:    [DigitRowTop, DigitRowMiddle, DigitRowBottom]
@@ -450,7 +450,7 @@ vessel PrimaryKeypad {
 
 vessel DigitRowTop {
     budget:      whole(0.13)
-    phase:       [0x03C60x2205, 0x03C60x2081]
+    phase:       [idle, execute]
     weight:      secondary
     arrangement: sequence(primary, [0.33, 0.34, 0.33])
     contains:    [Digit7Afford, Digit8Afford, Digit9Afford]
@@ -458,7 +458,7 @@ vessel DigitRowTop {
 
 vessel DigitRowMiddle {
     budget:      whole(0.13)
-    phase:       [0x03C60x2205, 0x03C60x2081]
+    phase:       [idle, execute]
     weight:      secondary
     arrangement: sequence(primary, [0.33, 0.34, 0.33])
     contains:    [Digit4Afford, Digit5Afford, Digit6Afford]
@@ -466,7 +466,7 @@ vessel DigitRowMiddle {
 
 vessel DigitRowBottom {
     budget:      whole(0.14)
-    phase:       [0x03C60x2205, 0x03C60x2081]
+    phase:       [idle, execute]
     weight:      secondary
     arrangement: sequence(primary, [0.33, 0.34, 0.33])
     contains:    [Digit1Afford, Digit2Afford, Digit3Afford]
@@ -474,7 +474,7 @@ vessel DigitRowBottom {
 
 vessel SecondaryKeypad {
     budget:      whole(0.10)
-    phase:       [0x03C60x2205, 0x03C60x2081]
+    phase:       [idle, execute]
     weight:      secondary
     arrangement: sequence(primary, [0.33, 0.34, 0.33])
     contains:    [NegateAfford, Digit0Afford, DecimalAfford]
@@ -482,7 +482,7 @@ vessel SecondaryKeypad {
 
 vessel DigitPad {
     budget:      whole(0.50)
-    phase:       [0x03C60x2205, 0x03C60x2081]
+    phase:       [idle, execute]
     weight:      primary
     arrangement: sequence(cross, [0.80, 0.20])
     contains:    [PrimaryKeypad, SecondaryKeypad]
@@ -514,7 +514,7 @@ vessel MemoryPanel {
 
 vessel ErrorOverlay {
     budget:      whole(0.20)
-    phase:       0x03C60x1D63
+    phase:       recover
     weight:      primary
     arrangement: sequence(primary, [1.0])
     contains:    [ErrorClaim, ClearAfford]
@@ -528,28 +528,28 @@ stage CalculatorStage {
     budget:  whole(1.0)
 
     phases: {
-        0x03C60x2205: {
+        idle: {
             arrangement: sequence(primary, [0.15, 0.10, 0.50, 0.15, 0.10])
             visible:     [DisplayVessel, ControlPanel, DigitPad, OperatorPanel]
             faded:       []
             hidden:      [ErrorOverlay, MemoryPanel]
             dominant:    DisplayVessel
         }
-        0x03C60x2081: {
+        execute: {
             arrangement: sequence(primary, [0.15, 0.10, 0.50, 0.15, 0.10])
             visible:     [DisplayVessel, ControlPanel, DigitPad, OperatorPanel]
             faded:       []
             hidden:      [ErrorOverlay, MemoryPanel]
             dominant:    DigitPad
         }
-        0x03C60x2082: {
+        verify: {
             arrangement: sequence(primary, [0.20, 0.10, 0.45, 0.15, 0.10])
             visible:     [DisplayVessel, ControlPanel, DigitPad, OperatorPanel]
             faded:       []
             hidden:      [ErrorOverlay, MemoryPanel]
             dominant:    DisplayVessel
         }
-        0x03C60x1D63: {
+        recover: {
             arrangement: sequence(primary, [0.15, 0.20, 0.40, 0.15, 0.10])
             visible:     [DisplayVessel, ErrorOverlay]
             faded:       [DigitPad, OperatorPanel]
@@ -593,10 +593,10 @@ flow CalculationFlow {
     ]
     on_stall: {
         threshold:  s(1)
-        surface:    0x03A60x22A3
+        surface:    blocked
         recovery:   [ClearAfford]
     }
-    terminal: success | failure(0x03A60x22A3)
+    terminal: success | failure(blocked)
 }
 
 flow InputFlow {
@@ -610,10 +610,10 @@ flow InputFlow {
     ]
     on_stall: {
         threshold:  ms(100)
-        surface:    0x03A60x2193
+        surface:    degraded
         recovery:   []
     }
-    terminal: success | partial(0x03A60x2193)
+    terminal: success | partial(degraded)
 }
 
 -- ---------------------------------------------------------------------------
@@ -624,19 +624,19 @@ bond DisplayInputBond between (DisplayVessel, DigitPad) {
     kind:      corresponds(mapping = input_to_display)
     direction: unidirectional(from = DigitPad, to = DisplayVessel)
     strength:  rigid
-    on_break:  0x03A60x22A3
+    on_break:  blocked
 }
 
 bond DisplayOperatorBond between (DisplayVessel, OperatorPanel) {
     kind:      corresponds(mapping = operator_to_display)
     direction: unidirectional(from = OperatorPanel, to = DisplayVessel)
     strength:  rigid
-    on_break:  0x03A60x22A3
+    on_break:  blocked
 }
 
 bond MemoryDisplayBond between (MemoryPanel, DisplayVessel) {
     kind:      corresponds(mapping = memory_to_display)
     direction: bidirectional
     strength:  flexible
-    on_break:  0x03A60x2193
+    on_break:  degraded
 }
