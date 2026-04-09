@@ -127,7 +127,7 @@ class ExpressionEvaluator:
     def evaluate(self, expr: Any) -> Any:
         """Evaluate an expression"""
         # Literals
-        if isinstance(expr, (int, float, str, bool, type(None))):
+        if isinstance(expr, (int, float, bool, type(None))):
             return expr
         
         # Variable lookup
