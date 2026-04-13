@@ -1,0 +1,1 @@
+2026-04-13T11:00:35Z | Deep critical bug inspection (recent commits in expression evaluator/compiler, CLI phase mapping, and migration changes): no concrete high-severity correctness bugs found after code-path tracing and targeted tests.
