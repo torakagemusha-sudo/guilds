@@ -1,0 +1,1 @@
+2026-04-15T11:05:46Z | Deep bug-finding audit run (cron): reviewed recent non-merge commits and traced expression evaluator/compiler and migration-path changes; no concrete critical correctness bugs found.
