@@ -41,6 +41,14 @@ class EvaluationContext:
         if self.parent:
             return self.parent.get(name)
         raise NameError(f"Variable '{name}' is not defined")
+
+    def contains(self, name: str) -> bool:
+        """Check if a variable exists in this scope chain."""
+        if name in self.variables:
+            return True
+        if self.parent:
+            return self.parent.contains(name)
+        return False
     
     def set(self, name: str, value: Any):
         """Set variable value"""
@@ -209,6 +217,11 @@ class ExpressionEvaluator:
     
     def _eval_conditional(self, expr: ConditionalExpr) -> Any:
         """Evaluate conditional expression"""
+        if isinstance(expr.condition, str) and not self.context.contains(expr.condition):
+            raise RuntimeError(
+                f"Conditional expression references undefined variable: {expr.condition}"
+            )
+
         condition = self.evaluate(expr.condition)
         
         if condition:
