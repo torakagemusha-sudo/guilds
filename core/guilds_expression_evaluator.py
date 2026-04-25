@@ -169,6 +169,11 @@ class ExpressionEvaluator:
         """Evaluate binary expression"""
         left = self.evaluate(expr.left)
         right = self.evaluate(expr.right)
+
+        if expr.operator == '*' and not self._are_numbers(left, right):
+            raise RuntimeError(
+                "Binary operation error: '*' requires numeric operands"
+            )
         
         operators = {
             '+': lambda a, b: a + b,
@@ -193,6 +198,13 @@ class ExpressionEvaluator:
                 raise RuntimeError(f"Binary operation error: {e}")
         
         raise ValueError(f"Unknown binary operator: {expr.operator}")
+
+    @staticmethod
+    def _are_numbers(*values: Any) -> bool:
+        return all(
+            isinstance(value, (int, float)) and not isinstance(value, bool)
+            for value in values
+        )
     
     def _eval_unary(self, expr: UnaryExpr) -> Any:
         """Evaluate unary expression"""
