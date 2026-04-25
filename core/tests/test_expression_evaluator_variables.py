@@ -24,3 +24,10 @@ def test_evaluate_expression_raises_for_missing_variable_in_binary_op():
 
     with pytest.raises(RuntimeError):
         evaluate_expression(expr, {})
+
+
+def test_evaluate_expression_does_not_repeat_missing_variable_name():
+    expr = BinaryExpr("*", "missing_value", 3)
+
+    with pytest.raises(RuntimeError):
+        evaluate_expression(expr, {})
