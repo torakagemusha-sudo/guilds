@@ -41,6 +41,14 @@ class EvaluationContext:
         if self.parent:
             return self.parent.get(name)
         raise NameError(f"Variable '{name}' is not defined")
+
+    def contains(self, name: str) -> bool:
+        """Check whether a variable exists in this scope chain."""
+        if name in self.variables:
+            return True
+        if self.parent:
+            return self.parent.contains(name)
+        return False
     
     def set(self, name: str, value: Any):
         """Set variable value"""
@@ -169,6 +177,11 @@ class ExpressionEvaluator:
         """Evaluate binary expression"""
         left = self.evaluate(expr.left)
         right = self.evaluate(expr.right)
+
+        if expr.operator == '*' and not self._are_numbers(left, right):
+            raise RuntimeError(
+                "Binary operation error: '*' requires numeric operands"
+            )
         
         operators = {
             '+': lambda a, b: a + b,
@@ -193,6 +206,13 @@ class ExpressionEvaluator:
                 raise RuntimeError(f"Binary operation error: {e}")
         
         raise ValueError(f"Unknown binary operator: {expr.operator}")
+
+    @staticmethod
+    def _are_numbers(*values: Any) -> bool:
+        return all(
+            isinstance(value, (int, float)) and not isinstance(value, bool)
+            for value in values
+        )
     
     def _eval_unary(self, expr: UnaryExpr) -> Any:
         """Evaluate unary expression"""
@@ -209,6 +229,11 @@ class ExpressionEvaluator:
     
     def _eval_conditional(self, expr: ConditionalExpr) -> Any:
         """Evaluate conditional expression"""
+        if isinstance(expr.condition, str) and not self.context.contains(expr.condition):
+            raise RuntimeError(
+                f"Conditional expression references undefined variable: {expr.condition}"
+            )
+
         condition = self.evaluate(expr.condition)
         
         if condition:
