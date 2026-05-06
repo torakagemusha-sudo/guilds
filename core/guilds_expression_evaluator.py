@@ -351,9 +351,10 @@ class ExpressionOptimizer:
             left = ExpressionOptimizer.constant_fold(expr.left)
             right = ExpressionOptimizer.constant_fold(expr.right)
             
-            # If both sides are constants, evaluate
-            if isinstance(left, (int, float, str, bool)) and \
-               isinstance(right, (int, float, str, bool)):
+            # Strings may be variable names at runtime, so folding them can
+            # silently replace variable expressions with literal text.
+            if isinstance(left, (int, float, bool)) and \
+               isinstance(right, (int, float, bool)):
                 evaluator = ExpressionEvaluator()
                 try:
                     result = evaluator._eval_binary(
@@ -421,10 +422,16 @@ class ExpressionCompiler:
         """Compile expression to Python function"""
         # Generate Python code
         code = self._generate_code(expr)
+
+        def resolve_string(name: str) -> Any:
+            try:
+                return context.get(name)
+            except NameError:
+                return name
         
         # Create function
         # Restrict builtins while evaluating generated expressions.
-        namespace = {'__builtins__': {}, 'ctx': context}
+        namespace = {'__builtins__': {}, 'ctx': context, '_resolve_string': resolve_string}
         exec(f"def _compiled_expr():\n    return {code}", namespace)
         
         return namespace['_compiled_expr']
@@ -438,7 +445,7 @@ class ExpressionCompiler:
             return repr(expr)
         
         if isinstance(expr, str):
-            return repr(expr)
+            return f"_resolve_string({repr(expr)})"
         
         if isinstance(expr, BinaryExpr):
             left = self._generate_code(expr.left)
